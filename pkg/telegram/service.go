@@ -1,5 +1,5 @@
 // Package telegram provides a minimal Telegram Bot API client used to send
-// event digests, polls, and alerts.
+// event digests, polls, pins, and alerts.
 package telegram
 
 import (
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -35,30 +36,52 @@ type sendMessageRequest struct {
 }
 
 type apiResponse struct {
-	OK          bool   `json:"ok"`
-	Description string `json:"description,omitempty"`
+	OK          bool            `json:"ok"`
+	Description string          `json:"description,omitempty"`
+	Result      json.RawMessage `json:"result,omitempty"`
 }
 
-// SendMessage sends a Markdown-formatted message to chatID.
+type messageResult struct {
+	MessageID int64 `json:"message_id"`
+}
+
+type pollResult struct {
+	Options []struct {
+		Text       string `json:"text"`
+		VoterCount int    `json:"voter_count"`
+	} `json:"options"`
+}
+
+// SendMessage sends a MarkdownV2-formatted message to chatID.
 func (s *Service) SendMessage(chatID, message string) error {
+	_, err := s.SendMessageID(chatID, message)
+	return err
+}
+
+// SendMessageID sends a MarkdownV2-formatted message and returns its message_id.
+func (s *Service) SendMessageID(chatID, message string) (int64, error) {
 	if s.botToken == "" {
-		return fmt.Errorf("bot token not configured")
+		return 0, fmt.Errorf("bot token not configured")
 	}
 	if chatID == "" {
-		return fmt.Errorf("chat ID not provided")
+		return 0, fmt.Errorf("chat ID not provided")
 	}
 	if message == "" {
-		return fmt.Errorf("message is empty")
+		return 0, fmt.Errorf("message is empty")
 	}
 	if len(message) > 4096 {
-		return fmt.Errorf("message too long (%d characters, max 4096)", len(message))
+		return 0, fmt.Errorf("message too long (%d characters, max 4096)", len(message))
 	}
-	return s.post("/sendMessage", sendMessageRequest{
+	var res messageResult
+	if err := s.post("/sendMessage", sendMessageRequest{
 		ChatID:                chatID,
 		Text:                  message,
 		ParseMode:             "MarkdownV2",
 		DisableWebPagePreview: true,
-	})
+	}, &res); err != nil {
+		return 0, err
+	}
+	return res.MessageID, nil
 }
 
 // SendAlert wraps the message in a standard alert template.
@@ -93,40 +116,78 @@ type sendPollRequest struct {
 	AllowsMultipleAnswers bool     `json:"allows_multiple_answers"`
 }
 
-// SendPoll sends a non-anonymous poll. 2-10 options required by Telegram.
-func (s *Service) SendPoll(chatID, question string, options []string, allowMultiple bool) error {
+// SendPoll sends a non-anonymous poll and returns its message_id.
+// Telegram requires 2-10 options.
+func (s *Service) SendPoll(chatID, question string, options []string, allowMultiple bool) (int64, error) {
 	if s.botToken == "" {
-		return fmt.Errorf("bot token not configured")
+		return 0, fmt.Errorf("bot token not configured")
 	}
 	if chatID == "" {
-		return fmt.Errorf("chat ID not provided")
+		return 0, fmt.Errorf("chat ID not provided")
 	}
 	if question == "" {
-		return fmt.Errorf("question is empty")
+		return 0, fmt.Errorf("question is empty")
 	}
 	if len(options) < 2 || len(options) > 10 {
-		return fmt.Errorf("poll requires 2-10 options, got %d", len(options))
+		return 0, fmt.Errorf("poll requires 2-10 options, got %d", len(options))
 	}
-	return s.post("/sendPoll", sendPollRequest{
+	var res messageResult
+	if err := s.post("/sendPoll", sendPollRequest{
 		ChatID:                chatID,
 		Question:              question,
 		Options:               options,
 		IsAnonymous:           false,
 		Type:                  "regular",
 		AllowsMultipleAnswers: allowMultiple,
-	})
+	}, &res); err != nil {
+		return 0, err
+	}
+	return res.MessageID, nil
 }
 
-// SendMonthlyMeetupPoll posts the standard monthly day-of-week poll.
-func (s *Service) SendMonthlyMeetupPoll(chatID string) error {
-	return s.SendPoll(chatID,
-		"Є бажаючі зустрітись - виберіть день тижня",
-		[]string{"Понеділок", "Вівторок", "Середа", "Четвер", "П'ятниця", "Субота", "Неділя"},
-		true,
-	)
+type stopPollRequest struct {
+	ChatID    string `json:"chat_id"`
+	MessageID int64  `json:"message_id"`
 }
 
-func (s *Service) post(path string, body any) error {
+// StopPoll closes the poll and returns voter counts per option, in the
+// order the options were sent. Only works on polls this bot sent.
+func (s *Service) StopPoll(chatID string, messageID int64) ([]int, error) {
+	var res pollResult
+	if err := s.post("/stopPoll", stopPollRequest{ChatID: chatID, MessageID: messageID}, &res); err != nil {
+		return nil, err
+	}
+	counts := make([]int, len(res.Options))
+	for i, o := range res.Options {
+		counts[i] = o.VoterCount
+	}
+	return counts, nil
+}
+
+type pinRequest struct {
+	ChatID              string `json:"chat_id"`
+	MessageID           int64  `json:"message_id"`
+	DisableNotification bool   `json:"disable_notification"`
+}
+
+// PinChatMessage pins a message. The bot must be an admin with pin rights.
+func (s *Service) PinChatMessage(chatID string, messageID int64) error {
+	return s.post("/pinChatMessage", pinRequest{ChatID: chatID, MessageID: messageID, DisableNotification: true}, nil)
+}
+
+// mdV2Escape escapes every character Telegram MarkdownV2 treats as special.
+var mdV2Escape = strings.NewReplacer(
+	`\`, `\\`, "_", "\\_", "*", "\\*", "[", "\\[", "]", "\\]", "(", "\\(", ")", "\\)",
+	"~", "\\~", "`", "\\`", ">", "\\>", "#", "\\#", "+", "\\+", "-", "\\-", "=", "\\=",
+	"|", "\\|", "{", "\\{", "}", "\\}", ".", "\\.", "!", "\\!",
+)
+
+// EscapeMarkdownV2 makes arbitrary text safe inside a MarkdownV2 message.
+func EscapeMarkdownV2(s string) string { return mdV2Escape.Replace(s) }
+
+// post sends body as JSON and, when out is non-nil, decodes the "result"
+// field into it.
+func (s *Service) post(path string, body any, out any) error {
 	jsonData, err := json.Marshal(body)
 	if err != nil {
 		return fmt.Errorf("marshal request: %w", err)
@@ -146,6 +207,11 @@ func (s *Service) post(path string, body any) error {
 	}
 	if !r.OK {
 		return fmt.Errorf("telegram API error: %s", r.Description)
+	}
+	if out != nil && len(r.Result) > 0 {
+		if err := json.Unmarshal(r.Result, out); err != nil {
+			return fmt.Errorf("parse result: %w", err)
+		}
 	}
 	return nil
 }

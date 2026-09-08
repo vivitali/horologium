@@ -4,7 +4,6 @@
 // Usage:
 //
 //	go run ./cmd/cli -action=events
-//	go run ./cmd/cli -action=poll
 //	go run ./cmd/cli -action=scrape_annual                    # writes to SSM via default AWS creds
 //	go run ./cmd/cli -action=scrape_annual -out=/tmp/x.json   # writes JSON to file, skips SSM
 package main
@@ -29,7 +28,7 @@ import (
 )
 
 func main() {
-	action := flag.String("action", "events", "job to run: events, poll, or scrape_annual")
+	action := flag.String("action", "events", "job to run: events or scrape_annual")
 	out := flag.String("out", "", "scrape_annual only: write JSON to this file instead of SSM")
 	flag.Parse()
 
@@ -39,12 +38,10 @@ func main() {
 	switch *action {
 	case "events":
 		result = runEvents(cfg)
-	case "poll":
-		result = runPoll(cfg)
 	case "scrape_annual":
 		result = runAnnualScrape(ctx, cfg, *out)
 	default:
-		log.Fatalf("unknown action %q (want events, poll, or scrape_annual)", *action)
+		log.Fatalf("unknown action %q (want events or scrape_annual)", *action)
 	}
 
 	js, _ := json.MarshalIndent(result, "", "  ")
@@ -59,11 +56,6 @@ func runEvents(cfg config.Config) jobs.Result {
 	scraper := factory.CreateDefaultService()
 	sender := telegram.NewService(cfg.BotToken)
 	return jobs.RunEventsDigest(jobs.EventsDeps{Scraper: scraper, Sender: sender, Now: time.Now()}, cfg, nil)
-}
-
-func runPoll(cfg config.Config) jobs.Result {
-	poller := telegram.NewService(cfg.PollBotToken)
-	return jobs.RunMonthlyPoll(jobs.PollDeps{Poller: poller}, cfg)
 }
 
 func runAnnualScrape(ctx context.Context, cfg config.Config, outFile string) jobs.Result {

@@ -38,8 +38,6 @@ func handle(ctx context.Context, evt Event) (jobs.Result, error) {
 	switch evt.Action {
 	case "events", "":
 		return runEvents(ctx, cfg), nil
-	case "poll":
-		return runPoll(cfg), nil
 	case "scrape_annual":
 		return runAnnualScrape(ctx, cfg), nil
 	default:
@@ -69,11 +67,6 @@ func runEvents(ctx context.Context, cfg config.Config) jobs.Result {
 		Sender:  sender,
 		Now:     time.Now(),
 	}, cfg, annualEvts)
-}
-
-func runPoll(cfg config.Config) jobs.Result {
-	poller := telegram.NewService(cfg.PollBotToken)
-	return jobs.RunMonthlyPoll(jobs.PollDeps{Poller: poller}, cfg)
 }
 
 func runAnnualScrape(ctx context.Context, cfg config.Config) jobs.Result {

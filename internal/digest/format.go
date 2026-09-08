@@ -9,6 +9,7 @@ import (
 	"event_calendar/internal/annual"
 	"event_calendar/internal/models"
 	"event_calendar/internal/timeutil"
+	"event_calendar/pkg/telegram"
 )
 
 const telegramMaxLen = 4096
@@ -226,29 +227,6 @@ func sourceName(source string) string {
 	}
 }
 
-// MarkdownV2 escape: outside code blocks and link URLs, these chars are reserved.
-var mdV2Escape = strings.NewReplacer(
-	`\`, `\\`,
-	`_`, `\_`,
-	`*`, `\*`,
-	`[`, `\[`,
-	`]`, `\]`,
-	`(`, `\(`,
-	`)`, `\)`,
-	`~`, `\~`,
-	"`", "\\`",
-	`>`, `\>`,
-	`#`, `\#`,
-	`+`, `\+`,
-	`-`, `\-`,
-	`=`, `\=`,
-	`|`, `\|`,
-	`{`, `\{`,
-	`}`, `\}`,
-	`.`, `\.`,
-	`!`, `\!`,
-)
-
 // MarkdownV2 code-block escape: only `\` and `` ` `` need escaping inside `...`.
 var mdV2Code = strings.NewReplacer(
 	`\`, `\\`,
@@ -261,6 +239,6 @@ var mdV2URL = strings.NewReplacer(
 	`)`, `\)`,
 )
 
-func escMD(s string) string    { return mdV2Escape.Replace(s) }
+func escMD(s string) string    { return telegram.EscapeMarkdownV2(s) }
 func escMDURL(s string) string { return mdV2URL.Replace(s) }
 func codeMD(s string) string   { return "`" + mdV2Code.Replace(s) + "`" }

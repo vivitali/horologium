@@ -6,35 +6,44 @@ import (
 	"strconv"
 )
 
-// Config holds all runtime settings. Poll fields default to the main bot/chat
-// when their dedicated env vars are not set.
+// Config holds all runtime settings for both Lambdas. Fields not relevant
+// to a binary are simply left empty by the environment.
 type Config struct {
-	BotToken       string
-	ChatID         string
-	PollBotToken   string
-	PollChatID     string
-	City           string
-	Categories     string
-	PeriodDays     int
+	// Events digest bot.
+	BotToken   string
+	ChatID     string
+	City       string
+	Categories string
+	PeriodDays int
+
+	// Meetup bot (separate Telegram bot, separate Lambda).
+	MeetupBotToken  string
+	MeetupChatID    string
+	MeetupSSMParam  string
+	AnthropicAPIKey string
+
+	// Shared.
 	TestMode       bool
 	AnnualSSMParam string
 }
 
 // Load reads environment variables and applies defaults.
 func Load() Config {
-	cfg := Config{
+	return Config{
 		BotToken:   os.Getenv("TELEGRAM_BOT_TOKEN"),
 		ChatID:     os.Getenv("TELEGRAM_CHAT_ID"),
 		City:       envOr("CITY", "Winnipeg"),
 		Categories: envOr("CATEGORIES", "tech"),
 		PeriodDays: envInt("PERIOD_DAYS", 30),
-		TestMode:   os.Getenv("TEST_MODE") == "true",
 
+		MeetupBotToken:  os.Getenv("TELEGRAM_MEETUP_BOT_TOKEN"),
+		MeetupChatID:    os.Getenv("TELEGRAM_MEETUP_CHAT_ID"),
+		MeetupSSMParam:  envOr("MEETUP_SSM_PARAM", "/winnipeg-tech-events/meetup-state"),
+		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
+
+		TestMode:       os.Getenv("TEST_MODE") == "true",
 		AnnualSSMParam: envOr("ANNUAL_SSM_PARAM", "/winnipeg-tech-events/annual-events"),
 	}
-	cfg.PollBotToken = envOr("TELEGRAM_POLL_BOT_TOKEN", cfg.BotToken)
-	cfg.PollChatID = envOr("TELEGRAM_POLL_CHAT_ID", cfg.ChatID)
-	return cfg
 }
 
 func envOr(key, fallback string) string {
