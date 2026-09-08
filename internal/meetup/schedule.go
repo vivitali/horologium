@@ -71,13 +71,9 @@ func NextStep(today time.Time, w Weekend, phase Phase) Step {
 		if !today.Before(w.SummaryDay()) && !today.After(w.Sat) {
 			return StepSummarize
 		}
-	case PhaseStopped:
-		// The poll is already closed; finish posting the summary even if the
-		// window has passed, otherwise the month silently dies.
-		if !today.Before(w.SummaryDay()) {
-			return StepSummarize
-		}
 	}
+	// PhaseStopped is handled by Run's resume path, not by the window logic;
+	// PhaseDone never acts.
 	return StepNone
 }
 

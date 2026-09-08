@@ -258,3 +258,82 @@ func TestRun_Summary_SendFailureThenResumeWithoutSecondStop(t *testing.T) {
 		t.Errorf("summary = %q", b2.sentText)
 	}
 }
+
+func stoppedState() State {
+	st := polledState()
+	st.Phase = PhaseStopped
+	st.Counts = []int{0, 5, 0, 0, 1}
+	return st
+}
+
+func TestRun_StoppedMonthGivesUpAtNextPollDay(t *testing.T) {
+	// October is stuck in "stopped"; 20 Nov is past November's poll day (17 Nov).
+	b, s := &fakeBot{}, &memStore{st: stoppedState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 20))
+	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" {
+		t.Fatalf("expected to move on and send November's poll: res=%+v", res)
+	}
+	if len(b.calls) < 2 || b.calls[0] != "sendMessage" || b.calls[1] != "sendPoll" {
+		t.Errorf("expected alert then poll, got %v", b.calls)
+	}
+	if !strings.Contains(strings.ReplaceAll(b.sentText, "\\", ""), "giving up on the 2026-10 summary") {
+		t.Errorf("alert = %q", b.sentText)
+	}
+	if s.st.Month != "2026-11" || s.st.Phase != PhasePolled {
+		t.Errorf("state = %+v", s.st)
+	}
+	for _, c := range b.calls {
+		if c == "stopPoll" {
+			t.Error("stopPoll must not be called for the abandoned month")
+		}
+	}
+}
+
+func TestRun_StoppedMonthResumesBeforeNextPollDay(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{st: stoppedState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 16))
+	if !res.Success || res.Step != "summarize" || res.Month != "2026-10" || res.Winner != "☕ сб" {
+		t.Fatalf("res=%+v", res)
+	}
+	if s.st.Phase != PhaseDone || s.st.Month != "2026-10" {
+		t.Errorf("state = %+v", s.st)
+	}
+}
+
+func TestRun_TestMode_IgnoresStoppedState(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{st: stoppedState()}
+	d := deps(b, s, &fakeIdeas{})
+	d.TestMode = true
+	res := Run(context.Background(), d, tick(2026, 11, 20))
+	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" || len(b.calls) != 0 || s.puts != 0 {
+		t.Errorf("res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+	}
+}
+
+func TestRun_StoppedWithoutCountsFailsWithoutSecondStop(t *testing.T) {
+	st := polledState()
+	st.Phase = PhaseStopped
+	b, s := &fakeBot{}, &memStore{st: st}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 29))
+	if res.Success || len(b.calls) != 0 {
+		t.Errorf("res=%+v calls=%v", res, b.calls)
+	}
+}
+
+func TestRun_StopSucceedsWriteFailsAlerts(t *testing.T) {
+	b, s := &fakeBot{counts: []int{0, 4, 0, 0, 0}}, &memStore{st: polledState(), putErr: errors.New("ssm down")}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if res.Success || !strings.Contains(b.sentText, "closed but state write failed") {
+		t.Errorf("res=%+v sent=%q", res, b.sentText)
+	}
+}
+
+func TestPutWithRetry_StopsOnCancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	s := &memStore{putErr: errors.New("down")}
+	d := deps(&fakeBot{}, s, &fakeIdeas{})
+	d.Sleep = func(time.Duration) { cancel() }
+	if err := putWithRetry(ctx, d, State{}); err == nil || s.puts != 1 {
+		t.Errorf("err=%v puts=%d", err, s.puts)
+	}
+}

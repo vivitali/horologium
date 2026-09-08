@@ -66,12 +66,25 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 	if err != nil {
 		return fail("none", "state read: %v", err)
 	}
-	if stored.Phase == PhaseStopped && stored.Counts != nil {
-		// A previous tick closed the poll but never posted the summary.
-		// Finish that month first, even if the calendar has rolled over;
-		// ForMonth would otherwise discard the saved counts.
-		log.Printf("meetup: resuming unfinished summary for %s", stored.Month)
-		return summarize(ctx, deps, stored)
+	if stored.Phase == PhaseStopped {
+		switch {
+		case deps.TestMode:
+			log.Printf("test mode: state has an unfinished summary for %s; ignoring it for this dry run", stored.Month)
+		case today.Before(resumeDeadline(stored.Month, deps.Loc)):
+			// A previous tick closed the poll but never posted the summary.
+			// Finish that month first, even if the calendar has rolled over;
+			// ForMonth would otherwise discard the saved counts.
+			log.Printf("meetup: resuming unfinished summary for %s", stored.Month)
+			return summarize(ctx, deps, stored)
+		default:
+			// Posting has failed every day up to the next month's poll day.
+			// Give up on that month so the bot does not stay stuck forever.
+			alert(deps, fmt.Sprintf("⚠️ meetup bot: giving up on the %s summary (posting kept failing). Counts were %v.", stored.Month, stored.Counts))
+			stored.Phase = PhaseDone
+			if err := putWithRetry(ctx, deps, stored); err != nil {
+				return fail("none", "abandon %s: state write failed: %v", stored.Month, err)
+			}
+		}
 	}
 	st := stored.ForMonth(w.Key())
 	step := NextStep(today, w, st.Phase)
@@ -117,20 +130,40 @@ func sendPoll(ctx context.Context, deps Deps, w Weekend, st State) Result {
 	if err := putWithRetry(ctx, deps, st); err != nil {
 		// The poll is out but we lost track of it; the next tick would send
 		// another. Tell the group so a human can intervene.
-		alert := fmt.Sprintf("⚠️ meetup bot: poll %d sent but state write failed (%v). Next tick may repeat the poll; please check SSM.", id, err)
-		if _, aerr := deps.Bot.SendMessageID(deps.ChatID, telegram.EscapeMarkdownV2(alert)); aerr != nil {
-			log.Printf("meetup: alert send failed too: %v", aerr)
-		}
+		alert(deps, fmt.Sprintf("⚠️ meetup bot: poll %d sent but state write failed (%v). Next tick may repeat the poll; please check SSM.", id, err))
 		return fail(StepSendPoll.String(), "poll %d sent but state write failed: %v", id, err)
 	}
 	return Result{Success: true, Step: StepSendPoll.String(), Month: w.Key(), PollMessageID: id}
 }
 
-// putWithRetry writes state, retrying transient failures with a short backoff.
+// resumeDeadline is the last instant a stopped-but-unposted summary for
+// month key ("2006-01") is still worth posting: the next month's poll day.
+func resumeDeadline(key string, loc *time.Location) time.Time {
+	t, err := time.ParseInLocation("2006-01", key, loc)
+	if err != nil {
+		return time.Time{} // unparseable month: give up immediately
+	}
+	return LastWeekend(t.Year(), t.Month()+1, loc).PollDay()
+}
+
+// alert posts an operator-facing message to the group; failures are logged only.
+func alert(deps Deps, text string) {
+	if _, err := deps.Bot.SendMessageID(deps.ChatID, telegram.EscapeMarkdownV2(text)); err != nil {
+		log.Printf("meetup: alert send failed: %v", err)
+	}
+}
+
+// putWithRetry writes state, retrying transient failures with a short
+// backoff. A cancelled ctx ends the retries early.
 func putWithRetry(ctx context.Context, deps Deps, st State) error {
 	sleep := deps.Sleep
 	if sleep == nil {
-		sleep = time.Sleep
+		sleep = func(d time.Duration) {
+			select {
+			case <-time.After(d):
+			case <-ctx.Done():
+			}
+		}
 	}
 	var err error
 	for i := 0; i < putRetries; i++ {
@@ -140,6 +173,9 @@ func putWithRetry(ctx context.Context, deps Deps, st State) error {
 		log.Printf("meetup: state write attempt %d/%d failed: %v", i+1, putRetries, err)
 		if i < putRetries-1 {
 			sleep(time.Duration(i+1) * 2 * time.Second)
+			if ctx.Err() != nil {
+				return fmt.Errorf("%w (after: %v)", ctx.Err(), err)
+			}
 		}
 	}
 	return err
@@ -155,7 +191,12 @@ func summarize(ctx context.Context, deps Deps, st State) Result {
 	// before posting, the counts are already in state and stopPoll would
 	// be rejected by Telegram ("poll has already been closed").
 	counts := st.Counts
-	if st.Phase != PhaseStopped || counts == nil {
+	switch {
+	case st.Phase == PhaseStopped && counts == nil:
+		// Should be impossible (stopped is only written together with
+		// counts); never call stopPoll twice, so surface it instead.
+		return fail(StepSummarize.String(), "poll %d is marked stopped but has no counts", st.PollMessageID)
+	case st.Phase != PhaseStopped:
 		var err error
 		counts, err = deps.Bot.StopPoll(deps.ChatID, st.PollMessageID)
 		if err != nil {
@@ -164,6 +205,8 @@ func summarize(ctx context.Context, deps Deps, st State) Result {
 		st.Phase = PhaseStopped
 		st.Counts = counts
 		if err := putWithRetry(ctx, deps, st); err != nil {
+			// The poll is closed and the counts exist only in this process.
+			alert(deps, fmt.Sprintf("⚠️ meetup bot: poll %d closed but state write failed (%v). Counts: %v. Please check SSM.", st.PollMessageID, err, counts))
 			return fail(StepSummarize.String(), "poll %d stopped but state write failed: %v", st.PollMessageID, err)
 		}
 	}
