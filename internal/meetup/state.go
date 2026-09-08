@@ -20,6 +20,7 @@ type State struct {
 	Phase         Phase    `json:"phase"`
 	PollMessageID int64    `json:"poll_message_id,omitempty"`
 	Options       []string `json:"options,omitempty"`
+	Counts        []int    `json:"counts,omitempty"` // set once the poll is stopped
 	PastIdeas     []string `json:"past_ideas,omitempty"`
 }
 

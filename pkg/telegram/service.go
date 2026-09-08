@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Service is a thin HTTP client over the Telegram Bot API.
@@ -69,8 +70,8 @@ func (s *Service) SendMessageID(chatID, message string) (int64, error) {
 	if message == "" {
 		return 0, fmt.Errorf("message is empty")
 	}
-	if len(message) > 4096 {
-		return 0, fmt.Errorf("message too long (%d characters, max 4096)", len(message))
+	if n := utf8.RuneCountInString(message); n > 4096 {
+		return 0, fmt.Errorf("message too long (%d characters, max 4096)", n)
 	}
 	var res messageResult
 	if err := s.post("/sendMessage", sendMessageRequest{

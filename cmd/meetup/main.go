@@ -33,10 +33,12 @@ func main() {
 	lambda.Start(handle)
 }
 
-func handle(ctx context.Context, evt Event) (meetup.Result, error) {
+func handle(ctx context.Context, evt Event) (res meetup.Result, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("PANIC: %v", r)
+			res = meetup.Result{Error: fmt.Sprintf("panic: %v", r)}
+			err = nil
 		}
 	}()
 
@@ -50,6 +52,9 @@ func handle(ctx context.Context, evt Event) (meetup.Result, error) {
 		return meetup.Result{Error: err.Error()}, nil
 	}
 	log.Printf("meetup lambda invoked: now=%s test_mode=%t", now.In(loc).Format("2006-01-02 15:04 MST"), cfg.TestMode)
+	if cfg.AnthropicAPIKey == "" {
+		log.Printf("warning: ANTHROPIC_API_KEY not set; the AI poll option will be skipped")
+	}
 
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -61,6 +66,7 @@ func handle(ctx context.Context, evt Event) (meetup.Result, error) {
 		Bot:      telegram.NewService(cfg.MeetupBotToken),
 		Store:    store,
 		Ideas:    meetup.NewClaudeIdeas(cfg.AnthropicAPIKey),
+		BotToken: cfg.MeetupBotToken,
 		ChatID:   cfg.MeetupChatID,
 		TestMode: cfg.TestMode,
 		Loc:      loc,

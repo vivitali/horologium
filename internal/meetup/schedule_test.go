@@ -72,6 +72,9 @@ func TestNextStep(t *testing.T) {
 		{"summary day but never polled", d(2026, 10, 28), PhaseNew, StepNone},
 		{"after Saturday", d(2026, 11, 1), PhasePolled, StepNone},
 		{"done", d(2026, 10, 29), PhaseDone, StepNone},
+		{"stopped, still in window", d(2026, 10, 29), PhaseStopped, StepSummarize},
+		{"stopped, after Saturday still finishes", d(2026, 11, 2), PhaseStopped, StepSummarize},
+		{"stopped before summary day (impossible, but safe)", d(2026, 10, 25), PhaseStopped, StepNone},
 	}
 	for _, c := range cases {
 		if got := NextStep(c.today, w, c.phase); got != c.want {

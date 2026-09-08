@@ -125,6 +125,7 @@ func runMeetup(ctx context.Context, cfg config.Config, date, stateFile string) m
 		Bot:      telegram.NewService(cfg.MeetupBotToken),
 		Store:    store,
 		Ideas:    meetup.NewClaudeIdeas(cfg.AnthropicAPIKey),
+		BotToken: cfg.MeetupBotToken,
 		ChatID:   cfg.MeetupChatID,
 		TestMode: cfg.TestMode,
 		Loc:      loc,

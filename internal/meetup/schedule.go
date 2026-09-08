@@ -33,9 +33,10 @@ func (w Weekend) SummaryDay() time.Time { return w.Sat.AddDate(0, 0, -3) }
 type Phase string
 
 const (
-	PhaseNew    Phase = ""
-	PhasePolled Phase = "polled"
-	PhaseDone   Phase = "done"
+	PhaseNew     Phase = ""
+	PhasePolled  Phase = "polled"
+	PhaseStopped Phase = "stopped" // poll closed, counts saved, summary not yet posted
+	PhaseDone    Phase = "done"
 )
 
 // Step is the action a tick should take.
@@ -68,6 +69,12 @@ func NextStep(today time.Time, w Weekend, phase Phase) Step {
 		}
 	case PhasePolled:
 		if !today.Before(w.SummaryDay()) && !today.After(w.Sat) {
+			return StepSummarize
+		}
+	case PhaseStopped:
+		// The poll is already closed; finish posting the summary even if the
+		// window has passed, otherwise the month silently dies.
+		if !today.Before(w.SummaryDay()) {
 			return StepSummarize
 		}
 	}

@@ -62,6 +62,13 @@ func TestFormatSummary_Winner(t *testing.T) {
 	}
 }
 
+func TestFormatSummary_WinnerWithMissingOptions(t *testing.T) {
+	got := FormatSummary(nil, []int{0, 6, 0}, 1, true)
+	if !strings.Contains(got, "варіант \\#2") || strings.Contains(got, "пропускаємо") {
+		t.Errorf("unexpected:\n%s", got)
+	}
+}
+
 func TestFormatSummary_Skip(t *testing.T) {
 	opts := []string{"a", "b", OptionCannot}
 	got := FormatSummary(opts, []int{2, 1, 6}, 0, false)

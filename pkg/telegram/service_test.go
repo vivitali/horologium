@@ -105,3 +105,17 @@ func TestEscapeMarkdownV2(t *testing.T) {
 		t.Errorf("got %q want %q", got, want)
 	}
 }
+
+func TestSendMessageID_LengthIsRuneBased(t *testing.T) {
+	s, _, _ := newTestService(t, `{"ok":true,"result":{"message_id":1}}`)
+	cyr := ""
+	for i := 0; i < 3000; i++ {
+		cyr += "я" // 3000 runes, 6000 bytes: must be accepted
+	}
+	if _, err := s.SendMessageID("-1", cyr); err != nil {
+		t.Errorf("3000-rune message rejected: %v", err)
+	}
+	if _, err := s.SendMessageID("-1", cyr+cyr); err == nil {
+		t.Error("6000-rune message must be rejected")
+	}
+}
