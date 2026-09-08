@@ -1,4 +1,4 @@
-name: Deploy Lambda
+name: Deploy Lambdas
 
 on:
   push:
@@ -35,15 +35,16 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_POLL_BOT_TOKEN: ${{ secrets.TELEGRAM_POLL_BOT_TOKEN }}
-          TELEGRAM_POLL_CHAT_ID: ${{ secrets.TELEGRAM_POLL_CHAT_ID }}
+          TELEGRAM_MEETUP_BOT_TOKEN: ${{ secrets.TELEGRAM_MEETUP_BOT_TOKEN }}
+          TELEGRAM_MEETUP_CHAT_ID: ${{ secrets.TELEGRAM_MEETUP_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CITY: ${{ vars.CITY || 'Winnipeg' }}
           CATEGORIES: ${{ vars.CATEGORIES || 'tech' }}
           PERIOD_DAYS: ${{ vars.PERIOD_DAYS || '30' }}
           TEST_MODE: ${{ vars.TEST_MODE || 'false' }}
         run: ./deploy/deploy.sh
 
-      - name: Smoke test
+      - name: Smoke test (events digest)
         run: |
           aws lambda invoke \
             --function-name winnipeg-tech-events \
@@ -52,3 +53,14 @@ jobs:
             --region "$AWS_REGION" \
             /tmp/out.json
           cat /tmp/out.json
+
+      - name: Smoke test (meetup bot, no-op day)
+        run: |
+          aws lambda invoke \
+            --function-name winnipeg-meetup-bot \
+            --payload '{"date":"2026-01-02"}' \
+            --cli-binary-format raw-in-base64-out \
+            --region "$AWS_REGION" \
+            /tmp/meetup.json
+          cat /tmp/meetup.json
+          grep -q '"success":true' /tmp/meetup.json
