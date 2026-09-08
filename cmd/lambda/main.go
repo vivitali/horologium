@@ -15,6 +15,7 @@ import (
 	"event_calendar/internal/annual"
 	"event_calendar/internal/config"
 	"event_calendar/internal/jobs"
+	"event_calendar/internal/ssmparam"
 	"event_calendar/pkg/scraping"
 	"event_calendar/pkg/telegram"
 )
@@ -100,7 +101,7 @@ func newAnnualStore(ctx context.Context, cfg config.Config) (annual.Store, error
 		return nil, err
 	}
 	client := ssm.NewFromConfig(awsCfg)
-	return annual.NewSSMStore(annual.NewAWSSSMAdapter(client), cfg.AnnualSSMParam), nil
+	return annual.NewSSMStore(ssmparam.NewAWSAdapter(client), cfg.AnnualSSMParam), nil
 }
 
 func recoverPanic() {

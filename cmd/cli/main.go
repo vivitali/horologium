@@ -23,6 +23,7 @@ import (
 	"event_calendar/internal/annual"
 	"event_calendar/internal/config"
 	"event_calendar/internal/jobs"
+	"event_calendar/internal/ssmparam"
 	"event_calendar/pkg/scraping"
 	"event_calendar/pkg/telegram"
 )
@@ -82,7 +83,7 @@ func runAnnualScrape(ctx context.Context, cfg config.Config, outFile string) job
 			return jobs.Result{Error: "aws config: " + err.Error()}
 		}
 		store = annual.NewSSMStore(
-			annual.NewAWSSSMAdapter(ssm.NewFromConfig(awsCfg)),
+			ssmparam.NewAWSAdapter(ssm.NewFromConfig(awsCfg)),
 			cfg.AnnualSSMParam,
 		)
 	}
