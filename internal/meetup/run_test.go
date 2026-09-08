@@ -1,0 +1,205 @@
+package meetup
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+)
+
+type fakeBot struct {
+	pollQ    string
+	pollOpts []string
+	pollErr  error
+	stopped  int64
+	counts   []int
+	stopErr  error
+	sentText string
+	sendErr  error
+	pinned   int64
+	pinErr   error
+	calls    []string
+}
+
+func (b *fakeBot) SendPoll(chatID, q string, opts []string, multi bool) (int64, error) {
+	b.calls = append(b.calls, "sendPoll")
+	b.pollQ, b.pollOpts = q, opts
+	if !multi {
+		return 0, errors.New("poll must allow multiple answers")
+	}
+	return 111, b.pollErr
+}
+func (b *fakeBot) StopPoll(chatID string, id int64) ([]int, error) {
+	b.calls = append(b.calls, "stopPoll")
+	b.stopped = id
+	return b.counts, b.stopErr
+}
+func (b *fakeBot) SendMessageID(chatID, text string) (int64, error) {
+	b.calls = append(b.calls, "sendMessage")
+	b.sentText = text
+	return 222, b.sendErr
+}
+func (b *fakeBot) PinChatMessage(chatID string, id int64) error {
+	b.calls = append(b.calls, "pin")
+	b.pinned = id
+	return b.pinErr
+}
+
+type memStore struct {
+	st     State
+	getErr error
+	putErr error
+	puts   int
+}
+
+func (m *memStore) Get(ctx context.Context) (State, error) { return m.st, m.getErr }
+func (m *memStore) Put(ctx context.Context, s State) error {
+	m.puts++
+	m.st = s
+	return m.putErr
+}
+
+type fakeIdeas struct {
+	idea string
+	err  error
+	in   IdeaInput
+}
+
+func (f *fakeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error) {
+	f.in = in
+	return f.idea, f.err
+}
+
+func deps(b *fakeBot, s *memStore, i *fakeIdeas) Deps {
+	return Deps{Bot: b, Store: s, Ideas: i, ChatID: "-100", Loc: wpg}
+}
+
+// 14:00 UTC on the given Winnipeg date.
+func tick(y int, m time.Month, day int) time.Time {
+	return time.Date(y, m, day, 14, 0, 0, 0, time.UTC)
+}
+
+func TestRun_Noop_BeforeWindow(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 5))
+	if !res.Success || res.Step != "none" || len(b.calls) != 0 || s.puts != 0 {
+		t.Errorf("res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+	}
+}
+
+func TestRun_SendsPollWithIdea(t *testing.T) {
+	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Субота 14:00 — більярд"}
+	res := Run(context.Background(), deps(b, s, i), tick(2026, 10, 20))
+	if !res.Success || res.Step != "send_poll" || res.PollMessageID != 111 {
+		t.Fatalf("res=%+v", res)
+	}
+	if !strings.Contains(b.pollQ, "30 жовтня – 1 листопада") {
+		t.Errorf("question = %q", b.pollQ)
+	}
+	if len(b.pollOpts) != 5 || b.pollOpts[3] != "🤖 Субота 14:00 — більярд" {
+		t.Errorf("options = %q", b.pollOpts)
+	}
+	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 5 {
+		t.Errorf("state = %+v", s.st)
+	}
+	if len(s.st.PastIdeas) != 2 || s.st.PastIdeas[1] != "Субота 14:00 — більярд" {
+		t.Errorf("past ideas = %v", s.st.PastIdeas)
+	}
+	if len(i.in.PastIdeas) != 1 || i.in.PastIdeas[0] != "old" {
+		t.Errorf("generator should see previous ideas: %+v", i.in)
+	}
+}
+
+func TestRun_SendsPollWithoutIdeaOnGeneratorError(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{err: errors.New("down")}), tick(2026, 10, 20))
+	if !res.Success || len(b.pollOpts) != 4 || b.pollOpts[3] != OptionCannot {
+		t.Errorf("res=%+v opts=%q", res, b.pollOpts)
+	}
+}
+
+func TestRun_TestMode_SendsNothingWritesNothing(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{}
+	d := deps(b, s, &fakeIdeas{idea: "x"})
+	d.TestMode = true
+	res := Run(context.Background(), d, tick(2026, 10, 20))
+	if !res.Success || res.Step != "send_poll" || len(b.calls) != 0 || s.puts != 0 {
+		t.Errorf("res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+	}
+}
+
+func TestRun_PollSendErrorLeavesStateUntouched(t *testing.T) {
+	b, s := &fakeBot{pollErr: errors.New("tg down")}, &memStore{}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 20))
+	if res.Success || s.puts != 0 {
+		t.Errorf("res=%+v puts=%d", res, s.puts)
+	}
+}
+
+func polledState() State {
+	return State{Month: "2026-10", Phase: PhasePolled, PollMessageID: 111,
+		Options: []string{"🍻 пт", "☕ сб", "☕ нд", "🤖 ідея", OptionCannot}}
+}
+
+func TestRun_SummarizesAndPins(t *testing.T) {
+	b, s := &fakeBot{counts: []int{1, 5, 2, 0, 3}}, &memStore{st: polledState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if !res.Success || res.Step != "summarize" || res.Winner != "☕ сб" {
+		t.Fatalf("res=%+v", res)
+	}
+	if b.stopped != 111 || b.pinned != 222 {
+		t.Errorf("stopped=%d pinned=%d", b.stopped, b.pinned)
+	}
+	if !strings.Contains(b.sentText, "Голосів: 5") {
+		t.Errorf("summary = %q", b.sentText)
+	}
+	if s.st.Phase != PhaseDone {
+		t.Errorf("state = %+v", s.st)
+	}
+}
+
+func TestRun_SummarySkipsWhenBelowThreshold(t *testing.T) {
+	b, s := &fakeBot{counts: []int{1, 3, 2, 0, 3}}, &memStore{st: polledState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if !res.Success || res.Winner != "" || b.pinned != 0 {
+		t.Errorf("res=%+v pinned=%d", res, b.pinned)
+	}
+	if !strings.Contains(b.sentText, "пропускаємо") {
+		t.Errorf("summary = %q", b.sentText)
+	}
+	if s.st.Phase != PhaseDone {
+		t.Errorf("state = %+v", s.st)
+	}
+}
+
+func TestRun_PinFailureIsNotFatal(t *testing.T) {
+	b, s := &fakeBot{counts: []int{0, 4, 0, 0, 0}, pinErr: errors.New("not admin")}, &memStore{st: polledState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if !res.Success || s.st.Phase != PhaseDone {
+		t.Errorf("res=%+v state=%+v", res, s.st)
+	}
+}
+
+func TestRun_StopPollErrorKeepsPolledPhase(t *testing.T) {
+	b, s := &fakeBot{stopErr: errors.New("tg down")}, &memStore{st: polledState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if res.Success || s.puts != 0 || s.st.Phase != PhasePolled {
+		t.Errorf("res=%+v state=%+v", res, s.st)
+	}
+}
+
+func TestRun_StoreErrorFails(t *testing.T) {
+	res := Run(context.Background(), deps(&fakeBot{}, &memStore{getErr: errors.New("ssm")}, &fakeIdeas{}), tick(2026, 10, 20))
+	if res.Success {
+		t.Errorf("res=%+v", res)
+	}
+}
+
+func TestRun_MissingConfigFails(t *testing.T) {
+	d := deps(&fakeBot{}, &memStore{}, &fakeIdeas{})
+	d.ChatID = ""
+	if res := Run(context.Background(), d, tick(2026, 10, 20)); res.Success {
+		t.Errorf("res=%+v", res)
+	}
+}
