@@ -72,7 +72,7 @@ func TestIsNextWeek(t *testing.T) {
 func TestGroupByPeriod(t *testing.T) {
 	now := time.Date(2026, 1, 7, 12, 0, 0, 0, time.UTC) // Wed
 	events := []time.Time{
-		now,                                           // Today
+		now, // Today
 		time.Date(2026, 1, 9, 18, 0, 0, 0, time.UTC),  // Fri (This Week)
 		time.Date(2026, 1, 14, 18, 0, 0, 0, time.UTC), // Wed (Next Week)
 		time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC),  // Later

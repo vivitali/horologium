@@ -15,12 +15,12 @@ func NewScrapingServiceFactory() *ScrapingServiceFactory {
 // CreateDefaultService creates a scraping service with all default scrapers
 func (f *ScrapingServiceFactory) CreateDefaultService() *ScrapingService {
 	service := NewScrapingService()
-	
+
 	// Register default scrapers
 	service.RegisterScraper("meetup", NewMeetupScraper())
 	service.RegisterScraper("eventbrite", NewEventbriteScraper())
 	service.RegisterScraper("luma", NewLumaScraper())
-	
+
 	log.Printf("Created scraping service with %d scrapers", len(service.GetRegisteredScrapers()))
 	return service
 }
@@ -28,7 +28,7 @@ func (f *ScrapingServiceFactory) CreateDefaultService() *ScrapingService {
 // CreateServiceWithScrapers creates a scraping service with specific scrapers
 func (f *ScrapingServiceFactory) CreateServiceWithScrapers(scraperNames []string) *ScrapingService {
 	service := NewScrapingService()
-	
+
 	for _, name := range scraperNames {
 		switch name {
 		case "meetup":
@@ -41,7 +41,7 @@ func (f *ScrapingServiceFactory) CreateServiceWithScrapers(scraperNames []string
 			log.Printf("Warning: Unknown scraper name '%s', skipping", name)
 		}
 	}
-	
+
 	log.Printf("Created scraping service with %d scrapers: %v", len(service.GetRegisteredScrapers()), service.GetRegisteredScrapers())
 	return service
 }

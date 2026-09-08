@@ -23,32 +23,32 @@ var scrapingService *scraping.ScrapingService
 
 func main() {
 	log.Printf("🚀 Starting Event Calendar Application...")
-	
+
 	// Initialize scraping service
 	log.Printf("🔧 Initializing scraping service...")
 	factory := scraping.NewScrapingServiceFactory()
 	scrapingService = factory.CreateDefaultService()
-	
+
 	// Log service initialization
 	scrapers := scrapingService.GetRegisteredScrapers()
 	healthStatus := scrapingService.GetHealthStatus()
 	log.Printf("✅ Scraping service initialized with %d scrapers: %v", len(scrapers), scrapers)
 	log.Printf("📊 Scraper health status: %v", healthStatus)
-	
+
 	// Serve static files
 	http.Handle("/", http.FileServer(http.Dir("./web")))
-	
+
 	// API endpoints
 	http.HandleFunc("/api/events", aggregateEventsHandler)
 	http.HandleFunc("/api/health", healthHandler)
 	http.HandleFunc("/api/scrapers/health", scrapersHealthHandler)
 	http.HandleFunc("/api/scrapers", scrapersInfoHandler)
-	
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-	
+
 	log.Printf("🌐 Server starting on port %s", port)
 	log.Printf("📡 Available endpoints:")
 	log.Printf("   - GET /api/events - Scrape events from all sources")
@@ -56,7 +56,7 @@ func main() {
 	log.Printf("   - GET /api/scrapers/health - Scraper health status")
 	log.Printf("   - GET /api/scrapers - Scraper information")
 	log.Printf("   - GET / - Static web interface")
-	
+
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
 
@@ -70,7 +70,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 
 func aggregateEventsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📡 [API] Received request to /api/events from %s", r.RemoteAddr)
-	
+
 	// Set CORS headers
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -107,7 +107,7 @@ func aggregateEventsHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	allEvents, err := scrapingService.ScrapeEvents(params.City, params.Categories[0], period)
 	scrapingDuration := time.Since(startTime)
-	
+
 	if err != nil {
 		log.Printf("❌ [API] Scraping error after %v: %v", scrapingDuration, err)
 		http.Error(w, "Failed to scrape events", http.StatusInternalServerError)
@@ -116,7 +116,7 @@ func aggregateEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("✅ [API] Scraping service completed in %v, found %d events", scrapingDuration, len(allEvents))
 	log.Printf("📊 [API] Total events to return: %d", len(allEvents))
-	
+
 	// Log sample events for debugging
 	if len(allEvents) > 0 {
 		log.Printf("📋 [API] Sample events:")
@@ -137,10 +137,10 @@ func aggregateEventsHandler(w http.ResponseWriter, r *http.Request) {
 func scrapersHealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	healthStatus := scrapingService.GetHealthStatus()
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"scrapers": healthStatus,
+		"scrapers":  healthStatus,
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
@@ -149,21 +149,21 @@ func scrapersHealthHandler(w http.ResponseWriter, r *http.Request) {
 func scrapersInfoHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	
+
 	scrapers := scrapingService.GetRegisteredScrapers()
 	healthStatus := scrapingService.GetHealthStatus()
-	
+
 	scraperInfo := make([]map[string]interface{}, len(scrapers))
 	for i, name := range scrapers {
 		scraperInfo[i] = map[string]interface{}{
-			"name":   name,
+			"name":    name,
 			"healthy": healthStatus[name],
 		}
 	}
-	
+
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"scrapers": scraperInfo,
-		"count":    len(scrapers),
+		"scrapers":  scraperInfo,
+		"count":     len(scrapers),
 		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }

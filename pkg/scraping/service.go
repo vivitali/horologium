@@ -48,7 +48,7 @@ func (s *ScrapingService) GetScraper(name string) (EventScraper, bool) {
 func (s *ScrapingService) GetAllScrapers() map[string]EventScraper {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	scrapers := make(map[string]EventScraper)
 	for name, scraper := range s.scrapers {
@@ -84,13 +84,13 @@ func (s *ScrapingService) ScrapeEvents(city, category string, period time.Durati
 		wg.Add(1)
 		go func(scraperName string, scraper EventScraper) {
 			defer wg.Done()
-			
+
 			log.Printf("🔄 Starting scraping from %s", scraperName)
 			startTime := time.Now()
-			
+
 			events, err := scraper.GetEvents(city, category, period)
 			duration := time.Since(startTime)
-			
+
 			mu.Lock()
 			if err != nil {
 				log.Printf("❌ Error scraping from %s after %v: %v", scraperName, duration, err)
@@ -113,21 +113,21 @@ func (s *ScrapingService) ScrapeEvents(city, category string, period time.Durati
 	log.Printf("   Total events found: %d", len(allEvents))
 	log.Printf("   Successful scrapers: %d", len(scrapers)-len(errors))
 	log.Printf("   Failed scrapers: %d", len(errors))
-	
+
 	if len(errors) > 0 {
 		log.Printf("⚠️  Scraper errors:")
 		for _, err := range errors {
 			log.Printf("   - %v", err)
 		}
 	}
-	
+
 	// Log event sources breakdown
 	sourceCount := make(map[string]int)
 	for _, event := range allEvents {
 		sourceCount[event.Source]++
 	}
 	log.Printf("📊 Events by source: %v", sourceCount)
-	
+
 	// Return events even if some scrapers failed
 	return allEvents, nil
 }
@@ -153,7 +153,7 @@ func (s *ScrapingService) ScrapeEventsFromSource(source, city, category string, 
 func (s *ScrapingService) GetHealthStatus() map[string]bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	status := make(map[string]bool)
 	for name, scraper := range s.scrapers {
 		status[name] = scraper.IsHealthy()
@@ -165,7 +165,7 @@ func (s *ScrapingService) GetHealthStatus() map[string]bool {
 func (s *ScrapingService) GetRegisteredScrapers() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	var names []string
 	for name := range s.scrapers {
 		names = append(names, name)
@@ -177,7 +177,7 @@ func (s *ScrapingService) GetRegisteredScrapers() []string {
 func (s *ScrapingService) RemoveScraper(name string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if _, exists := s.scrapers[name]; exists {
 		delete(s.scrapers, name)
 		log.Printf("Removed scraper: %s", name)
@@ -188,7 +188,7 @@ func (s *ScrapingService) RemoveScraper(name string) {
 func (s *ScrapingService) ClearAllScrapers() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	s.scrapers = make(map[string]EventScraper)
 	log.Printf("Cleared all scrapers")
 }

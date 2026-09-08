@@ -227,7 +227,7 @@ func sourceName(source string) string {
 	}
 }
 
-// MarkdownV2 code-block escape: only `\` and `` ` `` need escaping inside `...`.
+// MarkdownV2 code-block escape: only `\` and “ ` “ need escaping inside `...`.
 var mdV2Code = strings.NewReplacer(
 	`\`, `\\`,
 	"`", "\\`",
