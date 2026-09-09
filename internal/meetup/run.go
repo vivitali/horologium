@@ -67,23 +67,24 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 		return fail("none", "state read: %v", err)
 	}
 	if stored.Phase == PhaseStopped {
-		switch {
-		case deps.TestMode:
-			log.Printf("test mode: state has an unfinished summary for %s; ignoring it for this dry run", stored.Month)
-		case today.Before(resumeDeadline(stored.Month, deps.Loc)):
+		if today.Before(resumeDeadline(stored.Month, deps.Loc)) {
 			// A previous tick closed the poll but never posted the summary.
 			// Finish that month first, even if the calendar has rolled over;
-			// ForMonth would otherwise discard the saved counts.
+			// ForMonth would otherwise discard the saved counts. summarize
+			// is side-effect free in TestMode, so dry runs show this step.
 			log.Printf("meetup: resuming unfinished summary for %s", stored.Month)
 			return summarize(ctx, deps, stored)
-		default:
-			// Posting has failed every day up to the next month's poll day.
-			// Give up on that month so the bot does not stay stuck forever.
-			alert(deps, fmt.Sprintf("⚠️ meetup bot: giving up on the %s summary (posting kept failing). Counts were %v.", stored.Month, stored.Counts))
+		}
+		// Posting has failed every day up to the next month's poll day.
+		// Give up on that month so the bot does not stay stuck forever.
+		if deps.TestMode {
+			log.Printf("test mode: would give up on the unfinished %s summary", stored.Month)
+		} else {
 			stored.Phase = PhaseDone
 			if err := putWithRetry(ctx, deps, stored); err != nil {
 				return fail("none", "abandon %s: state write failed: %v", stored.Month, err)
 			}
+			alert(deps, fmt.Sprintf("⚠️ meetup bot: giving up on the %s summary (posting kept failing). Counts were %v.", stored.Month, stored.Counts))
 		}
 	}
 	st := stored.ForMonth(w.Key())

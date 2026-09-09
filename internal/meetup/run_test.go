@@ -300,13 +300,42 @@ func TestRun_StoppedMonthResumesBeforeNextPollDay(t *testing.T) {
 	}
 }
 
-func TestRun_TestMode_IgnoresStoppedState(t *testing.T) {
+func TestRun_TestMode_StoppedState(t *testing.T) {
+	// Past the deadline: would give up, then reports the current month's step.
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
 	d := deps(b, s, &fakeIdeas{})
 	d.TestMode = true
 	res := Run(context.Background(), d, tick(2026, 11, 20))
 	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" || len(b.calls) != 0 || s.puts != 0 {
-		t.Errorf("res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+		t.Errorf("past deadline: res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+	}
+	// Same month, still resumable: reports summarize without side effects.
+	b, s = &fakeBot{}, &memStore{st: stoppedState()}
+	d = deps(b, s, &fakeIdeas{})
+	d.TestMode = true
+	res = Run(context.Background(), d, tick(2026, 10, 29))
+	if !res.Success || res.Step != "summarize" || res.Month != "2026-10" || len(b.calls) != 0 || s.puts != 0 {
+		t.Errorf("resumable: res=%+v calls=%v puts=%d", res, b.calls, s.puts)
+	}
+}
+
+func TestRun_GiveUpWriteFailureSendsNothing(t *testing.T) {
+	b, s := &fakeBot{}, &memStore{st: stoppedState(), putErr: errors.New("ssm down")}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 20))
+	if res.Success || len(b.calls) != 0 || s.st.Phase != PhaseStopped {
+		t.Errorf("res=%+v calls=%v state=%+v", res, b.calls, s.st)
+	}
+}
+
+func TestResumeDeadline(t *testing.T) {
+	if got := resumeDeadline("2026-12", wpg); !got.Equal(d(2027, 1, 19)) {
+		t.Errorf("Dec->Jan rollover: got %v", got) // last Sat Jan 2027 = 30th; -11 = 19th
+	}
+	if got := resumeDeadline("2026-10", wpg); !got.Equal(d(2026, 11, 17)) {
+		t.Errorf("Oct->Nov: got %v", got)
+	}
+	if got := resumeDeadline("garbage", wpg); !got.IsZero() {
+		t.Errorf("unparseable key should give zero time, got %v", got)
 	}
 }
 
