@@ -1,8 +1,9 @@
 name: Deploy Lambdas
 
+# Manual only: merging to main never touches prod. Run it from
+# Actions -> Deploy Lambdas -> Run workflow (on main; the OIDC role is
+# locked to refs/heads/main).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -43,16 +44,6 @@ jobs:
           PERIOD_DAYS: ${{ vars.PERIOD_DAYS || '30' }}
           TEST_MODE: ${{ vars.TEST_MODE || 'false' }}
         run: ./deploy/deploy.sh
-
-      - name: Smoke test (events digest)
-        run: |
-          aws lambda invoke \
-            --function-name winnipeg-tech-events \
-            --payload '{"action":"events"}' \
-            --cli-binary-format raw-in-base64-out \
-            --region "$AWS_REGION" \
-            /tmp/out.json
-          cat /tmp/out.json
 
       - name: Smoke test (meetup bot, no-op day)
         run: |

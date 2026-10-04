@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The day-of-week poll on the 20th (`poll` action, `winnipeg-poll-monthly` rule, `TELEGRAM_POLL_*` env vars). Absorbed by the meetup bot; `deploy.sh` deletes the old rule.
 
 ### Changed
+- **Deploys are manual.** The deploy workflow no longer runs on push to `main` and no longer invokes the events digest as a smoke test, so merging and deploying never post to the group.
 - `internal/ssmparam` extracted from `internal/annual` so both Lambdas share one SSM adapter.
 - **Annual events footer is now scraped monthly** instead of read from a hardcoded slice. A new Lambda action `scrape_annual` runs on the 1st of each month via EventBridge, scrapes four Winnipeg annual-event sites (Prairie Dev Con, WomenHack, North Forge RampUp, MbTech Week), and persists the next-occurrence dates to SSM Parameter Store. The weekly digest reads the latest result from SSM at send time. Per-site scrape failures retain last-known-good data, so a single broken parser never empties the footer.
 

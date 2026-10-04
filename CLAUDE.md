@@ -17,7 +17,7 @@ Lambdas driven by EventBridge. No inbound HTTP anywhere.
 - `scripts/check` — gofmt, vet, unit tests (fast gate)
 - `scripts/test`  — tests with `-race`
 - `scripts/build` — builds `deploy/lambda.zip` and `deploy/meetup.zip`
-- `scripts/ship`  — `deploy/deploy.sh` (CI does this on push to `main`; don't run locally unless asked)
+- `scripts/ship`  — `deploy/deploy.sh` (CI runs it only via manual "Run workflow"; merging never deploys; don't run locally unless asked)
 
 ## Conventions
 

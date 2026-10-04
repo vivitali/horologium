@@ -30,7 +30,7 @@ Discovers, aggregates, and shares technology events happening in Winnipeg, Manit
 
 ### Deploy
 - Manual: `./deploy/deploy.sh`
-- CI: `.github/workflows/deploy.yml` on push to `main` (OIDC, no long-lived AWS keys)
+- CI: `.github/workflows/deploy.yml`, manual "Run workflow" only (OIDC, no long-lived AWS keys). Merging to `main` does not deploy.
 
 ## Quick Start
 
@@ -170,7 +170,7 @@ GitHub **Variables** (not Secrets) — see the workflow defaults.
 ## Deploy via GitHub Actions
 
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) auto-deploys
-on push to `main` (and via manual dispatch). It uses **OIDC** — no long-lived
+when you run it manually (it never fires on merge). It uses **OIDC** — no long-lived
 AWS keys stored in GitHub.
 
 ### One-time AWS setup
@@ -223,12 +223,11 @@ In the repo on github.com: **Settings → Secrets and variables → Actions**.
 
 ### Trigger a deploy
 
-- **Automatic**: push to `main`.
-- **Manual**: GitHub repo → **Actions** → **Deploy Lambda** → **Run workflow**.
+- **Manual**: GitHub repo → **Actions** → **Deploy Lambdas** → **Run workflow** (on `main`).
 
-The workflow ends with smoke-test invocations of both Lambdas (the meetup
-bot on a past date, so it is guaranteed to be a no-op) and prints the JSON
-results in the run log.
+The workflow ends with a smoke-test invocation of the meetup bot on a past
+date (guaranteed no-op) and prints the JSON result. It does not invoke the
+events digest, so a deploy never posts to the group.
 
 ## Architecture
 
