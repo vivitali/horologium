@@ -40,12 +40,12 @@ func TestPickWinner_BelowThreshold(t *testing.T) {
 }
 
 func TestFormatSummary_Winner(t *testing.T) {
-	opts := []string{"🍻 Пт 25 вересня, ~18:30", "☕ Сб 26 вересня, ~12:00", OptionCannot}
+	opts := []string{"🍻 Пт 25 вересня, ~18:30", "☕ Сб 26 вересня, ~12:30", OptionCannot}
 	got := FormatSummary(opts, []int{2, 5, 1}, 1, true)
 	if !strings.HasPrefix(got, "\\#meetup\n") {
 		t.Errorf("summary must start with the escaped tag:\n%s", got)
 	}
-	if !strings.Contains(got, "📌 *Домовились:* ☕ Сб 26 вересня, \\~12:00") {
+	if !strings.Contains(got, "📌 *Домовились:* ☕ Сб 26 вересня, \\~12:30") {
 		t.Errorf("missing winner line:\n%s", got)
 	}
 	if !strings.Contains(got, "5 голосів — до зустрічі") {

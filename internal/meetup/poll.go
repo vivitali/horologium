@@ -60,9 +60,9 @@ func Question(w Weekend) string {
 func Options(w Weekend, idea string) []string {
 	opts := []string{
 		fmt.Sprintf("🍻 Пт %s, ~18:30", UkrDate(w.Fri)),
-		fmt.Sprintf("☕ Сб %s, ~12:00", UkrDate(w.Sat)),
+		fmt.Sprintf("☕ Сб %s, ~12:30", UkrDate(w.Sat)),
 		fmt.Sprintf("🍻 Сб %s, ~18:30", UkrDate(w.Sat)),
-		fmt.Sprintf("☕ Нд %s, ~12:00", UkrDate(w.Sun)),
+		fmt.Sprintf("☕ Нд %s, ~12:30", UkrDate(w.Sun)),
 		fmt.Sprintf("🍻 Нд %s, ~18:30", UkrDate(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {

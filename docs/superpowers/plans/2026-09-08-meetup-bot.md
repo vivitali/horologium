@@ -919,8 +919,8 @@ func TestOptions_WithIdea(t *testing.T) {
 	got := Options(w, "Субота після обіду — більярд на Осборн")
 	want := []string{
 		"🍻 Пʼятниця 25 вересня, ~18:30–19:00 — кава/пиво",
-		"☕ Субота 26 вересня, ~12:00–13:00 — кава",
-		"☕ Неділя 27 вересня, ~12:00–13:00 — кава",
+		"☕ Субота 26 вересня, ~12:30–13:00 — кава",
+		"☕ Неділя 27 вересня, ~12:30–13:00 — кава",
 		"🤖 Субота після обіду — більярд на Осборн",
 		OptionCannot,
 	}
@@ -1027,8 +1027,8 @@ func Question(w Weekend) string {
 func Options(w Weekend, idea string) []string {
 	opts := []string{
 		fmt.Sprintf("🍻 Пʼятниця %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Fri)),
-		fmt.Sprintf("☕ Субота %s, ~12:00–13:00 — кава", UkrDate(w.Sat)),
-		fmt.Sprintf("☕ Неділя %s, ~12:00–13:00 — кава", UkrDate(w.Sun)),
+		fmt.Sprintf("☕ Субота %s, ~12:30–13:00 — кава", UkrDate(w.Sat)),
+		fmt.Sprintf("☕ Неділя %s, ~12:30–13:00 — кава", UkrDate(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {
 		opts = append(opts, ideaPrefix+truncateRunes(idea, MaxIdeaLen))
@@ -1118,9 +1118,9 @@ func TestPickWinner_BelowThreshold(t *testing.T) {
 }
 
 func TestFormatSummary_Winner(t *testing.T) {
-	opts := []string{"🍻 Пʼятниця 25 вересня, ~18:30–19:00 — кава/пиво", "☕ Субота 26 вересня, ~12:00–13:00 — кава", OptionCannot}
+	opts := []string{"🍻 Пʼятниця 25 вересня, ~18:30–19:00 — кава/пиво", "☕ Субота 26 вересня, ~12:30–13:00 — кава", OptionCannot}
 	got := FormatSummary(opts, []int{2, 5, 1}, 1, true)
-	if !strings.Contains(got, "📌 Зустріч цього місяця: ☕ Субота 26 вересня, \\~12:00–13:00 — кава") {
+	if !strings.Contains(got, "📌 Зустріч цього місяця: ☕ Субота 26 вересня, \\~12:30–13:00 — кава") {
 		t.Errorf("missing winner line:\n%s", got)
 	}
 	if !strings.Contains(got, "Голосів: 5") {
@@ -1219,7 +1219,7 @@ func countAt(counts []int, i int) int {
 }
 ```
 
-Note the winner line is bold: `*Зустріч цього місяця:*` is literal MarkdownV2 markup and must not be escaped; the test checks the escaped option text after it. Adjust the test's expected substring to `"📌 *Зустріч цього місяця:* ☕ Субота 26 вересня, \\~12:00–13:00 — кава"`.
+Note the winner line is bold: `*Зустріч цього місяця:*` is literal MarkdownV2 markup and must not be escaped; the test checks the escaped option text after it. Adjust the test's expected substring to `"📌 *Зустріч цього місяця:* ☕ Субота 26 вересня, \\~12:30–13:00 — кава"`.
 
 - [ ] **Step 4: Run tests**
 
