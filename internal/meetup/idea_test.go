@@ -47,9 +47,21 @@ func fakeAnthropic(t *testing.T, text string, status int) (*httptest.Server, *ma
 	t.Helper()
 	var lastReq map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/models" {
+			if status != http.StatusOK {
+				w.WriteHeader(status)
+				return
+			}
+			_, _ = io.WriteString(w, `{"data":[
+				{"type":"model","id":"claude-opus-9","display_name":"Opus 9","created_at":"2030-01-01T00:00:00Z"},
+				{"type":"model","id":"claude-haiku-4-5","display_name":"Haiku 4.5","created_at":"2025-10-01T00:00:00Z"},
+				{"type":"model","id":"claude-haiku-7","display_name":"Haiku 7","created_at":"2029-01-01T00:00:00Z"}],
+				"has_more":false,"first_id":"claude-opus-9","last_id":"claude-haiku-7"}`)
+			return
+		}
 		b, _ := io.ReadAll(r.Body)
 		_ = json.Unmarshal(b, &lastReq)
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		if status != http.StatusOK {
 			_, _ = io.WriteString(w, `{"type":"error","error":{"type":"api_error","message":"boom"}}`)
@@ -77,8 +89,8 @@ func TestClaudeIdeas_Generate(t *testing.T) {
 	if got != "Субота 14:00 — лижі у Windsor Park" {
 		t.Errorf("got %q", got)
 	}
-	if (*req)["model"] != IdeaModel {
-		t.Errorf("model = %v", (*req)["model"])
+	if (*req)["model"] != "claude-haiku-7" {
+		t.Errorf("model = %v, want the newest haiku from the models list", (*req)["model"])
 	}
 	body, _ := json.Marshal(*req)
 	for _, want := range []string{"29 січня", "30 січня", "31 січня", "зима", "боулінг", "Winnipeg"} {
@@ -111,5 +123,13 @@ func TestClaudeIdeas_NoKey(t *testing.T) {
 	g := NewClaudeIdeas("")
 	if _, err := g.Generate(context.Background(), IdeaInput{Weekend: LastWeekend(2026, time.July, wpg)}); err == nil {
 		t.Error("expected error when key is empty")
+	}
+}
+
+func TestLatestModel_FallsBackWhenListFails(t *testing.T) {
+	srv, _ := fakeAnthropic(t, "", http.StatusInternalServerError)
+	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
+	if got := g.latestModel(context.Background()); got != IdeaModel {
+		t.Errorf("got %q want %q", got, IdeaModel)
 	}
 }

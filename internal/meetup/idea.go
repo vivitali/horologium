@@ -3,6 +3,7 @@ package meetup
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -10,9 +11,12 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
-// IdeaModel is the model used for the AI option. Haiku is plenty for one
-// short line and keeps the monthly cost negligible.
+// IdeaModel is the fallback model for the AI option when the live lookup
+// fails. Haiku is plenty for one short line and keeps the cost negligible.
 const IdeaModel = "claude-haiku-4-5"
+
+// ideaModelPrefix selects the family; latestModel picks the newest member.
+const ideaModelPrefix = "claude-haiku"
 
 // IdeaInput is everything the generator may consider.
 type IdeaInput struct {
@@ -77,8 +81,9 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error
 	}
 	user.WriteString("Запропонуй одну ідею.")
 
+	model := c.latestModel(ctx)
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     IdeaModel,
+		Model:     model,
 		MaxTokens: 200,
 		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
 		Messages: []anthropic.MessageParam{
@@ -99,6 +104,29 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error
 		return "", fmt.Errorf("anthropic: empty idea")
 	}
 	return idea, nil
+}
+
+// latestModel returns the newest model whose id starts with ideaModelPrefix,
+// or IdeaModel if the Models API is unavailable. Runs once a month, so no
+// caching.
+func (c *ClaudeIdeas) latestModel(ctx context.Context) string {
+	page, err := c.client.Models.List(ctx, anthropic.ModelListParams{})
+	if err != nil {
+		log.Printf("meetup: models list failed, using %s: %v", IdeaModel, err)
+		return IdeaModel
+	}
+	best := ""
+	var bestAt time.Time
+	for _, m := range page.Data {
+		if strings.HasPrefix(m.ID, ideaModelPrefix) && (best == "" || m.CreatedAt.After(bestAt)) {
+			best, bestAt = m.ID, m.CreatedAt
+		}
+	}
+	if best == "" {
+		return IdeaModel
+	}
+	log.Printf("meetup: using %s", best)
+	return best
 }
 
 // Season returns the Ukrainian season word for a month.
