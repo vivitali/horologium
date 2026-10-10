@@ -9,7 +9,7 @@ import (
 const (
 	// OptionCannot is always the last poll option and is excluded from the
 	// winner computation.
-	OptionCannot = "❌ Цього разу без мене"
+	OptionCannot = "❌ Без мене"
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
 	// MaxIdeaLen leaves room for the "🤖 " prefix inside MaxOptionLen.
@@ -59,11 +59,11 @@ func Question(w Weekend) string {
 // The cannot-attend option is always last.
 func Options(w Weekend, idea string) []string {
 	opts := []string{
-		fmt.Sprintf("🍻 Пʼятниця %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Fri)),
-		fmt.Sprintf("☕ Субота %s, ~12:00–13:00 — кава", UkrDate(w.Sat)),
-		fmt.Sprintf("🍻 Субота %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Sat)),
-		fmt.Sprintf("☕ Неділя %s, ~12:00–13:00 — кава", UkrDate(w.Sun)),
-		fmt.Sprintf("🍻 Неділя %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Пт %s, 18:30", UkrDate(w.Fri)),
+		fmt.Sprintf("☕ Сб %s, 12:00", UkrDate(w.Sat)),
+		fmt.Sprintf("🍻 Сб %s, 18:30", UkrDate(w.Sat)),
+		fmt.Sprintf("☕ Нд %s, 12:00", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Нд %s, 18:30", UkrDate(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {
 		opts = append(opts, ideaPrefix+truncateRunes(idea, MaxIdeaLen))
