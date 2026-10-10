@@ -51,7 +51,7 @@ func UkrRange(w Weekend) string {
 
 // Question is the poll question naming the weekend's dates.
 func Question(w Weekend) string {
-	return fmt.Sprintf("%s Зустріч в останні вихідні місяця (%s). Оберіть зручний час, можна кілька варіантів", Tag, UkrRange(w))
+	return fmt.Sprintf("%s Зустріч в останні вихідні місяця (%s). Оберіть зручний час (орієнтовно), можна кілька варіантів", Tag, UkrRange(w))
 }
 
 // Options builds the poll options (7, or 6 without an idea; Telegram allows 10).
@@ -59,11 +59,11 @@ func Question(w Weekend) string {
 // The cannot-attend option is always last.
 func Options(w Weekend, idea string) []string {
 	opts := []string{
-		fmt.Sprintf("🍻 Пт %s, 18:30", UkrDate(w.Fri)),
-		fmt.Sprintf("☕ Сб %s, 12:00", UkrDate(w.Sat)),
-		fmt.Sprintf("🍻 Сб %s, 18:30", UkrDate(w.Sat)),
-		fmt.Sprintf("☕ Нд %s, 12:00", UkrDate(w.Sun)),
-		fmt.Sprintf("🍻 Нд %s, 18:30", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Пт %s, ~18:30", UkrDate(w.Fri)),
+		fmt.Sprintf("☕ Сб %s, ~12:00", UkrDate(w.Sat)),
+		fmt.Sprintf("🍻 Сб %s, ~18:30", UkrDate(w.Sat)),
+		fmt.Sprintf("☕ Нд %s, ~12:00", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Нд %s, ~18:30", UkrDate(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {
 		opts = append(opts, ideaPrefix+truncateRunes(idea, MaxIdeaLen))

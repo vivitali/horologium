@@ -24,7 +24,7 @@ func TestUkrRange_SpansMonths(t *testing.T) {
 func TestQuestion(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	got := Question(w)
-	if got != "#meetup Зустріч в останні вихідні місяця (25–27 вересня). Оберіть зручний час, можна кілька варіантів" {
+	if got != "#meetup Зустріч в останні вихідні місяця (25–27 вересня). Оберіть зручний час (орієнтовно), можна кілька варіантів" {
 		t.Errorf("got %q", got)
 	}
 	if utf8.RuneCountInString(got) > 300 {
@@ -36,11 +36,11 @@ func TestOptions_WithIdea(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	got := Options(w, "Субота після обіду — більярд на Осборн")
 	want := []string{
-		"🍻 Пт 25 вересня, 18:30",
-		"☕ Сб 26 вересня, 12:00",
-		"🍻 Сб 26 вересня, 18:30",
-		"☕ Нд 27 вересня, 12:00",
-		"🍻 Нд 27 вересня, 18:30",
+		"🍻 Пт 25 вересня, ~18:30",
+		"☕ Сб 26 вересня, ~12:00",
+		"🍻 Сб 26 вересня, ~18:30",
+		"☕ Нд 27 вересня, ~12:00",
+		"🍻 Нд 27 вересня, ~18:30",
 		"🤖 Субота після обіду — більярд на Осборн",
 		OptionCannot,
 	}
