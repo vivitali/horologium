@@ -17,6 +17,13 @@ func TestFormatEventsMessage_Empty(t *testing.T) {
 	}
 }
 
+func TestFormatEventsMessage_StartsWithTag(t *testing.T) {
+	msg := FormatEventsMessage([]models.Event{{Name: "X", URL: "https://e", Source: "meetup", StartTime: time.Now().Add(time.Hour)}}, nil, time.Now())
+	if !strings.HasPrefix(msg, "\\#events ") {
+		t.Errorf("digest must start with the #events tag:\n%s", msg)
+	}
+}
+
 func TestFormatEventsMessage_GroupsAndHeaders(t *testing.T) {
 	now := time.Date(2026, 1, 7, 12, 0, 0, 0, time.UTC) // Wed
 	events := []models.Event{

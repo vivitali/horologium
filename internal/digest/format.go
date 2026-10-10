@@ -37,7 +37,7 @@ func FormatEventsMessage(events []models.Event, annualEvts []annual.AnnualEvent,
 		return "📅 *No upcoming events found* for Winnipeg tech community\\."
 	}
 
-	header := fmt.Sprintf("🚀 *Winnipeg Tech Events* — %s · %d upcoming\n\n",
+	header := fmt.Sprintf("\\#events 🚀 *Winnipeg Tech Events* — %s · %d upcoming\n\n",
 		escMD(now.Format("Mon Jan 2")), len(events))
 
 	var trailer strings.Builder
