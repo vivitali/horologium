@@ -111,7 +111,7 @@ even if the option builder changes later. `past_ideas` keeps the last 12.
 Question (≤300 chars):
 
 ```
-#meetup Коли зустрічаємось в останні вихідні (24–26 жовтня)? Можна обрати кілька варіантів
+#meetup Зустріч в останні вихідні місяця (24–26 жовтня). Оберіть зручний час, можна кілька варіантів
 ```
 
 If Sunday falls in the next month: `(30 жовтня – 1 листопада)`.

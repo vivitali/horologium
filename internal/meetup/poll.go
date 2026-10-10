@@ -51,7 +51,7 @@ func UkrRange(w Weekend) string {
 
 // Question is the poll question naming the weekend's dates.
 func Question(w Weekend) string {
-	return fmt.Sprintf("%s Коли зустрічаємось в останні вихідні (%s)? Можна обрати кілька варіантів", Tag, UkrRange(w))
+	return fmt.Sprintf("%s Зустріч в останні вихідні місяця (%s). Оберіть зручний час, можна кілька варіантів", Tag, UkrRange(w))
 }
 
 // Options builds the poll options (7, or 6 without an idea; Telegram allows 10).

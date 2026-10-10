@@ -24,7 +24,7 @@ func TestUkrRange_SpansMonths(t *testing.T) {
 func TestQuestion(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	got := Question(w)
-	if got != "#meetup Коли зустрічаємось в останні вихідні (25–27 вересня)? Можна обрати кілька варіантів" {
+	if got != "#meetup Зустріч в останні вихідні місяця (25–27 вересня). Оберіть зручний час, можна кілька варіантів" {
 		t.Errorf("got %q", got)
 	}
 	if utf8.RuneCountInString(got) > 300 {
