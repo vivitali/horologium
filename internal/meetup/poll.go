@@ -9,7 +9,7 @@ import (
 const (
 	// OptionCannot is always the last poll option and is excluded from the
 	// winner computation.
-	OptionCannot = "❌ Цього разу не зможу"
+	OptionCannot = "❌ Can't make it this time"
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
 	// MaxIdeaLen leaves room for the "🤖 " prefix inside MaxOptionLen.
@@ -19,39 +19,23 @@ const (
 	Tag = "#meetup"
 )
 
-// Genitive month names, as used after a day number ("24 жовтня").
-var ukrMonths = [...]string{
-	time.January:   "січня",
-	time.February:  "лютого",
-	time.March:     "березня",
-	time.April:     "квітня",
-	time.May:       "травня",
-	time.June:      "червня",
-	time.July:      "липня",
-	time.August:    "серпня",
-	time.September: "вересня",
-	time.October:   "жовтня",
-	time.November:  "листопада",
-	time.December:  "грудня",
+// DateText formats a date as "Oct 24".
+func DateText(t time.Time) string {
+	return t.Format("Jan 2")
 }
 
-// UkrDate formats a date as "24 жовтня".
-func UkrDate(t time.Time) string {
-	return fmt.Sprintf("%d %s", t.Day(), ukrMonths[t.Month()])
-}
-
-// UkrRange formats Fri–Sun as "24–26 жовтня", or
-// "30 жовтня – 1 листопада" when Sunday is in the next month.
-func UkrRange(w Weekend) string {
+// RangeText formats Fri–Sun as "Oct 24–26", or "Oct 30 – Nov 1" when
+// Sunday is in the next month.
+func RangeText(w Weekend) string {
 	if w.Fri.Month() == w.Sun.Month() {
-		return fmt.Sprintf("%d–%d %s", w.Fri.Day(), w.Sun.Day(), ukrMonths[w.Sun.Month()])
+		return fmt.Sprintf("%s %d–%d", w.Fri.Format("Jan"), w.Fri.Day(), w.Sun.Day())
 	}
-	return UkrDate(w.Fri) + " – " + UkrDate(w.Sun)
+	return DateText(w.Fri) + " – " + DateText(w.Sun)
 }
 
 // Question is the poll question naming the weekend's dates.
 func Question(w Weekend) string {
-	return fmt.Sprintf("%s Зустріч в останні вихідні місяця (%s). Оберіть зручний час (орієнтовно), можна кілька варіантів. Зустріч відбудеться, якщо набереться хоча б %d голоси", Tag, UkrRange(w), MinVotes)
+	return fmt.Sprintf("%s Meetup on the last weekend of the month (%s). Pick what works for you (times are approximate), multiple choices allowed. The meetup happens with at least %d votes", Tag, RangeText(w), MinVotes)
 }
 
 // Options builds the poll options (7, or 6 without an idea; Telegram allows 10).
@@ -59,11 +43,11 @@ func Question(w Weekend) string {
 // The cannot-attend option is always last.
 func Options(w Weekend, idea string) []string {
 	opts := []string{
-		fmt.Sprintf("🍻 Пт %s, ~18:30", UkrDate(w.Fri)),
-		fmt.Sprintf("☕ Сб %s, ~12:30", UkrDate(w.Sat)),
-		fmt.Sprintf("🍻 Сб %s, ~18:30", UkrDate(w.Sat)),
-		fmt.Sprintf("☕ Нд %s, ~12:30", UkrDate(w.Sun)),
-		fmt.Sprintf("🍻 Нд %s, ~18:30", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Fri %s, ~6:30pm", DateText(w.Fri)),
+		fmt.Sprintf("☕ Sat %s, ~12:30pm", DateText(w.Sat)),
+		fmt.Sprintf("🍻 Sat %s, ~6:30pm", DateText(w.Sat)),
+		fmt.Sprintf("☕ Sun %s, ~12:30pm", DateText(w.Sun)),
+		fmt.Sprintf("🍻 Sun %s, ~6:30pm", DateText(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {
 		opts = append(opts, ideaPrefix+truncateRunes(idea, MaxIdeaLen))

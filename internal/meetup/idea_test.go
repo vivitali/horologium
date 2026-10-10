@@ -15,10 +15,10 @@ import (
 
 func TestSeason(t *testing.T) {
 	cases := map[time.Month]string{
-		time.December: "зима", time.January: "зима", time.February: "зима",
-		time.March: "весна", time.May: "весна",
-		time.June: "літо", time.August: "літо",
-		time.September: "осінь", time.November: "осінь",
+		time.December: "winter", time.January: "winter", time.February: "winter",
+		time.March: "spring", time.May: "spring",
+		time.June: "summer", time.August: "summer",
+		time.September: "fall", time.November: "fall",
 	}
 	for m, want := range cases {
 		if got := Season(m); got != want {
@@ -29,11 +29,11 @@ func TestSeason(t *testing.T) {
 
 func TestCleanIdea(t *testing.T) {
 	cases := map[string]string{
-		"Субота після обіду — більярд":         "Субота після обіду — більярд",
-		"\n\n  \"Неділя 13:00 — боулінг\"  \n": "Неділя 13:00 — боулінг",
-		"🤖 Пʼятниця 19:00 — квіз\nдруга лінія": "Пʼятниця 19:00 — квіз",
-		strings.Repeat("я", 120):               strings.Repeat("я", MaxIdeaLen-1) + "…",
-		"   ":                                  "",
+		"Sat afternoon — pool":            "Sat afternoon — pool",
+		"\n\n  \"Sun 1pm — bowling\"  \n": "Sun 1pm — bowling",
+		"🤖 Fri 7pm — trivia\nsecond line": "Fri 7pm — trivia",
+		strings.Repeat("я", 120):          strings.Repeat("я", MaxIdeaLen-1) + "…",
+		"   ":                             "",
 	}
 	for in, want := range cases {
 		if got := cleanIdea(in); got != want {
@@ -79,21 +79,21 @@ func fakeAnthropic(t *testing.T, text string, status int) (*httptest.Server, *ma
 }
 
 func TestClaudeIdeas_Generate(t *testing.T) {
-	srv, req := fakeAnthropic(t, "\"Субота 14:00 — лижі у Windsor Park\"\n", http.StatusOK)
+	srv, req := fakeAnthropic(t, "\"Sat ~2pm — skiing at Windsor Park\"\n", http.StatusOK)
 	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
 	w := LastWeekend(2027, time.January, wpg)
-	got, err := g.Generate(context.Background(), IdeaInput{Weekend: w, PastIdeas: []string{"боулінг"}})
+	got, err := g.Generate(context.Background(), IdeaInput{Weekend: w, PastIdeas: []string{"bowling"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "Субота 14:00 — лижі у Windsor Park" {
+	if got != "Sat ~2pm — skiing at Windsor Park" {
 		t.Errorf("got %q", got)
 	}
 	if (*req)["model"] != "claude-haiku-7" {
 		t.Errorf("model = %v, want the newest haiku from the models list", (*req)["model"])
 	}
 	body, _ := json.Marshal(*req)
-	for _, want := range []string{"29 січня", "30 січня", "31 січня", "зима", "боулінг", "Winnipeg"} {
+	for _, want := range []string{"Jan 29", "Jan 30", "Jan 31", "winter", "bowling", "Winnipeg"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("request missing %q:\n%s", want, body)
 		}

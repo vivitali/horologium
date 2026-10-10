@@ -33,14 +33,14 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 	sb.WriteString(esc(Tag))
 	sb.WriteString("\n")
 	if ok {
-		label := fmt.Sprintf("варіант #%d", winner+1)
+		label := fmt.Sprintf("option #%d", winner+1)
 		if winner < len(options) {
 			label = options[winner]
 		}
-		sb.WriteString("📌 *Домовились:* ")
+		sb.WriteString("📌 *It's settled:* ")
 		sb.WriteString(esc(label))
 		sb.WriteString("\n")
-		sb.WriteString(esc(fmt.Sprintf("%d %s — до зустрічі!", countAt(counts, winner), votesWord(countAt(counts, winner)))))
+		sb.WriteString(esc(fmt.Sprintf("%d %s. See you there!", countAt(counts, winner), votesWord(countAt(counts, winner)))))
 	} else {
 		maxVotes := 0
 		for i := 0; i < len(counts)-1; i++ {
@@ -48,10 +48,10 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 				maxVotes = counts[i]
 			}
 		}
-		sb.WriteString(esc(fmt.Sprintf("Цього разу не збираємось: найбільше %d %s, а треба хоча б %d. Спробуємо наступного місяця 🙂", maxVotes, votesWord(maxVotes), MinVotes)))
+		sb.WriteString(esc(fmt.Sprintf("No meetup this time: the top option got %d %s, and it takes at least %d. Let's try again next month 🙂", maxVotes, votesWord(maxVotes), MinVotes)))
 	}
 	sb.WriteString("\n\n")
-	sb.WriteString(esc("Як голосували:"))
+	sb.WriteString(esc("How people voted:"))
 	for i, o := range options {
 		sb.WriteString("\n")
 		sb.WriteString(esc(fmt.Sprintf("%s — %d", o, countAt(counts, i))))
@@ -59,17 +59,12 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 	return sb.String()
 }
 
-// votesWord declines "голос" for n: 1 голос, 2–4 голоси, 5+ голосів.
+// votesWord pluralises "vote".
 func votesWord(n int) string {
-	n10, n100 := n%10, n%100
-	switch {
-	case n10 == 1 && n100 != 11:
-		return "голос"
-	case n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14):
-		return "голоси"
-	default:
-		return "голосів"
+	if n == 1 {
+		return "vote"
 	}
+	return "votes"
 }
 
 func countAt(counts []int, i int) int {

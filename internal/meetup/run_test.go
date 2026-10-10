@@ -97,21 +97,21 @@ func TestRun_Noop_BeforeWindow(t *testing.T) {
 }
 
 func TestRun_SendsPollWithIdea(t *testing.T) {
-	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Субота 14:00 — більярд"}
+	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Sat ~2pm — pool"}
 	res := Run(context.Background(), deps(b, s, i), tick(2026, 10, 20))
 	if !res.Success || res.Step != "send_poll" || res.PollMessageID != 111 {
 		t.Fatalf("res=%+v", res)
 	}
-	if !strings.Contains(b.pollQ, "30 жовтня – 1 листопада") {
+	if !strings.Contains(b.pollQ, "Oct 30 – Nov 1") {
 		t.Errorf("question = %q", b.pollQ)
 	}
-	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 Субота 14:00 — більярд" {
+	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 Sat ~2pm — pool" {
 		t.Errorf("options = %q", b.pollOpts)
 	}
 	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 7 {
 		t.Errorf("state = %+v", s.st)
 	}
-	if len(s.st.PastIdeas) != 2 || s.st.PastIdeas[1] != "Субота 14:00 — більярд" {
+	if len(s.st.PastIdeas) != 2 || s.st.PastIdeas[1] != "Sat ~2pm — pool" {
 		t.Errorf("past ideas = %v", s.st.PastIdeas)
 	}
 	if len(i.in.PastIdeas) != 1 || i.in.PastIdeas[0] != "old" {
@@ -147,19 +147,19 @@ func TestRun_PollSendErrorLeavesStateUntouched(t *testing.T) {
 
 func polledState() State {
 	return State{Month: "2026-10", Phase: PhasePolled, PollMessageID: 111,
-		Options: []string{"🍻 пт", "☕ сб", "☕ нд", "🤖 ідея", OptionCannot}}
+		Options: []string{"🍻 fri", "☕ sat", "☕ sun", "🤖 idea", OptionCannot}}
 }
 
 func TestRun_SummarizesAndPins(t *testing.T) {
 	b, s := &fakeBot{counts: []int{1, 5, 2, 0, 3}}, &memStore{st: polledState()}
 	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
-	if !res.Success || res.Step != "summarize" || res.Winner != "☕ сб" {
+	if !res.Success || res.Step != "summarize" || res.Winner != "☕ sat" {
 		t.Fatalf("res=%+v", res)
 	}
 	if b.stopped != 111 || b.pinned != 222 {
 		t.Errorf("stopped=%d pinned=%d", b.stopped, b.pinned)
 	}
-	if !strings.Contains(b.sentText, "5 голосів") {
+	if !strings.Contains(b.sentText, "5 votes") {
 		t.Errorf("summary = %q", b.sentText)
 	}
 	if s.st.Phase != PhaseDone {
@@ -173,7 +173,7 @@ func TestRun_SummarySkipsWhenBelowThreshold(t *testing.T) {
 	if !res.Success || res.Winner != "" || b.pinned != 0 {
 		t.Errorf("res=%+v pinned=%d", res, b.pinned)
 	}
-	if !strings.Contains(b.sentText, "не збираємось") {
+	if !strings.Contains(b.sentText, "No meetup") {
 		t.Errorf("summary = %q", b.sentText)
 	}
 	if s.st.Phase != PhaseDone {
@@ -246,7 +246,7 @@ func TestRun_Summary_SendFailureThenResumeWithoutSecondStop(t *testing.T) {
 	// Next tick (even after Saturday): no stopPoll, summary posts from saved counts.
 	b2 := &fakeBot{stopErr: errors.New("poll has already been closed")}
 	res = Run(context.Background(), deps(b2, s, &fakeIdeas{}), tick(2026, 11, 1))
-	if !res.Success || res.Winner != "☕ сб" || s.st.Phase != PhaseDone {
+	if !res.Success || res.Winner != "☕ sat" || s.st.Phase != PhaseDone {
 		t.Fatalf("second tick: res=%+v state=%+v", res, s.st)
 	}
 	for _, c := range b2.calls {
@@ -254,7 +254,7 @@ func TestRun_Summary_SendFailureThenResumeWithoutSecondStop(t *testing.T) {
 			t.Error("stopPoll must not be called again")
 		}
 	}
-	if !strings.Contains(b2.sentText, "5 голосів") {
+	if !strings.Contains(b2.sentText, "5 votes") {
 		t.Errorf("summary = %q", b2.sentText)
 	}
 }
@@ -292,7 +292,7 @@ func TestRun_StoppedMonthGivesUpAtNextPollDay(t *testing.T) {
 func TestRun_StoppedMonthResumesBeforeNextPollDay(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
 	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 16))
-	if !res.Success || res.Step != "summarize" || res.Month != "2026-10" || res.Winner != "☕ сб" {
+	if !res.Success || res.Step != "summarize" || res.Month != "2026-10" || res.Winner != "☕ sat" {
 		t.Fatalf("res=%+v", res)
 	}
 	if s.st.Phase != PhaseDone || s.st.Month != "2026-10" {

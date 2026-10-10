@@ -48,16 +48,16 @@ func NewClaudeIdeas(apiKey string, opts ...option.RequestOption) *ClaudeIdeas {
 	return &ClaudeIdeas{apiKey: apiKey, client: anthropic.NewClient(all...)}
 }
 
-const ideaSystemPrompt = `Ти допомагаєш невеликій українськомовній tech-спільноті у Вінніпезі (Winnipeg, Manitoba, Canada) обрати ідею для зустрічі на вихідних.
+const ideaSystemPrompt = `You help a small tech community in Winnipeg, Manitoba, Canada pick an idea for a weekend meetup.
 
-Правила відповіді:
-- Рівно один рядок, українською, без пояснень, без лапок, без емодзі.
-- Формат: "<день і приблизний час> — <конкретна активність і місце>". Наприклад: "Субота 14:00 — більярд на Osborne".
-- Не більше 70 символів.
-- Обери один із трьох запропонованих днів і вкажи приблизний час початку.
-- Активність має бути реальною і доступною у Вінніпезі або поруч: спорт, прогулянки, ігри, виставки, кафе з настільними іграми, музеї, tech-події тощо.
-- Враховуй пору року і погодні умови, щоб ідея була доречною, але НІКОЛИ не згадуй пору року, місяць чи погоду в тексті.
-- Не повторюй ідеї зі списку минулих ідей.`
+Rules for your reply:
+- Exactly one line, in English, no explanation, no quotes, no emoji.
+- Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne".
+- At most 70 characters.
+- Pick one of the three offered days and give an approximate start time.
+- The activity must be real and available in or near Winnipeg: sports, walks, games, exhibitions, board-game cafes, museums, tech events, and so on.
+- Take the season and likely weather into account so the idea fits, but NEVER mention the season, month, or weather in the text.
+- Do not repeat anything from the list of past ideas.`
 
 // Generate asks Claude for one idea line. Empty output is an error so the
 // caller can drop the option.
@@ -67,19 +67,19 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error
 	}
 	w := in.Weekend
 	var user strings.Builder
-	fmt.Fprintf(&user, "Дати зустрічі: пʼятниця %s, субота %s, неділя %s (%d рік).\n",
-		UkrDate(w.Fri), UkrDate(w.Sat), UkrDate(w.Sun), w.Sat.Year())
-	fmt.Fprintf(&user, "Пора року: %s.\n", Season(w.Sat.Month()))
+	fmt.Fprintf(&user, "Meetup dates: Friday %s, Saturday %s, Sunday %s (%d).\n",
+		DateText(w.Fri), DateText(w.Sat), DateText(w.Sun), w.Sat.Year())
+	fmt.Fprintf(&user, "Season: %s.\n", Season(w.Sat.Month()))
 	if in.Conditions != "" {
-		fmt.Fprintf(&user, "Умови: %s\n", in.Conditions)
+		fmt.Fprintf(&user, "Conditions: %s\n", in.Conditions)
 	}
 	if len(in.PastIdeas) > 0 {
-		user.WriteString("Минулі ідеї (не повторювати):\n")
+		user.WriteString("Past ideas (do not repeat):\n")
 		for _, p := range in.PastIdeas {
 			fmt.Fprintf(&user, "- %s\n", p)
 		}
 	}
-	user.WriteString("Запропонуй одну ідею.")
+	user.WriteString("Suggest one idea.")
 
 	model := c.latestModel(ctx)
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -129,17 +129,17 @@ func (c *ClaudeIdeas) latestModel(ctx context.Context) string {
 	return best
 }
 
-// Season returns the Ukrainian season word for a month.
+// Season returns the season for a month.
 func Season(m time.Month) string {
 	switch m {
 	case time.December, time.January, time.February:
-		return "зима"
+		return "winter"
 	case time.March, time.April, time.May:
-		return "весна"
+		return "spring"
 	case time.June, time.July, time.August:
-		return "літо"
+		return "summer"
 	default:
-		return "осінь"
+		return "fall"
 	}
 }
 

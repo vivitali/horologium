@@ -7,16 +7,16 @@ import (
 	"unicode/utf8"
 )
 
-func TestUkrRange_SameMonth(t *testing.T) {
-	w := LastWeekend(2026, time.September, wpg) // 25–27 вересня
-	if got := UkrRange(w); got != "25–27 вересня" {
+func TestRangeText_SameMonth(t *testing.T) {
+	w := LastWeekend(2026, time.September, wpg)
+	if got := RangeText(w); got != "Sep 25–27" {
 		t.Errorf("got %q", got)
 	}
 }
 
-func TestUkrRange_SpansMonths(t *testing.T) {
-	w := LastWeekend(2026, time.October, wpg) // 30 жовтня – 1 листопада
-	if got := UkrRange(w); got != "30 жовтня – 1 листопада" {
+func TestRangeText_SpansMonths(t *testing.T) {
+	w := LastWeekend(2026, time.October, wpg)
+	if got := RangeText(w); got != "Oct 30 – Nov 1" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -24,7 +24,7 @@ func TestUkrRange_SpansMonths(t *testing.T) {
 func TestQuestion(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	got := Question(w)
-	if got != "#meetup Зустріч в останні вихідні місяця (25–27 вересня). Оберіть зручний час (орієнтовно), можна кілька варіантів. Зустріч відбудеться, якщо набереться хоча б 4 голоси" {
+	if got != "#meetup Meetup on the last weekend of the month (Sep 25–27). Pick what works for you (times are approximate), multiple choices allowed. The meetup happens with at least 4 votes" {
 		t.Errorf("got %q", got)
 	}
 	if utf8.RuneCountInString(got) > 300 {
@@ -34,14 +34,14 @@ func TestQuestion(t *testing.T) {
 
 func TestOptions_WithIdea(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
-	got := Options(w, "Субота після обіду — більярд на Осборн")
+	got := Options(w, "Sat ~2pm — pool on Osborne")
 	want := []string{
-		"🍻 Пт 25 вересня, ~18:30",
-		"☕ Сб 26 вересня, ~12:30",
-		"🍻 Сб 26 вересня, ~18:30",
-		"☕ Нд 27 вересня, ~12:30",
-		"🍻 Нд 27 вересня, ~18:30",
-		"🤖 Субота після обіду — більярд на Осборн",
+		"🍻 Fri Sep 25, ~6:30pm",
+		"☕ Sat Sep 26, ~12:30pm",
+		"🍻 Sat Sep 26, ~6:30pm",
+		"☕ Sun Sep 27, ~12:30pm",
+		"🍻 Sun Sep 27, ~6:30pm",
+		"🤖 Sat ~2pm — pool on Osborne",
 		OptionCannot,
 	}
 	if len(got) != len(want) {
