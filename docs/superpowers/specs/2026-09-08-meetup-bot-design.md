@@ -129,17 +129,32 @@ Options (each ≤100 chars), `allows_multiple_answers=true`, `is_anonymous=false
 ### Summary
 
 `stopPoll` returns `voter_count` per option in order. Winner = highest count
-among all options except the last; ties → lowest index. With a winner and
-count ≥ 4:
+among all options except the last; ties → lowest index. The poll is in
+English; the summary is in Ukrainian.
+
+A fixed option with count ≥ 4 is a decision:
 
 ```
 #meetup
-📌 Домовились: ☕ Сб 25 жовтня, ~12:30
+📌 Домовились: ☕ Sat Oct 25, ~12:30pm
 5 голосів — до зустрічі!
 
 Як голосували:
-🍻 Пт 24 жовтня, ~18:30 — 2
-☕ Сб 25 жовтня, ~12:30 — 5
+🍻 Fri Oct 24, ~6:30pm — 2
+☕ Sat Oct 25, ~12:30pm — 5
+…
+```
+
+The 🤖 option with count ≥ 4 is a proposal, not a decision, and carries the
+details blurb:
+
+```
+#meetup
+💡 Пропозиція на обговорення: 🤖 Sat ~2pm — pool at a bar on Osborne
+5 голосів. Обговоріть у чаті та домовтесь про деталі.
+ℹ️ <venue, how to get there, cost — Ukrainian, ≤ 350 chars>
+
+Як голосували:
 …
 ```
 
@@ -149,7 +164,7 @@ Otherwise:
 Цього разу не збираємось: найбільше 2 голоси, а треба хоча б 4. Спробуємо наступного місяця 🙂
 ```
 
-Sent as MarkdownV2 (escaped). Pinned only when there is a winner.
+Sent as MarkdownV2 (escaped). Pinned whenever there is a winner (either kind).
 
 ### AI idea generator
 

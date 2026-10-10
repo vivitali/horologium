@@ -60,9 +60,9 @@ func NewClaudeIdeas(apiKey string, opts ...option.RequestOption) *ClaudeIdeas {
 
 const ideaSystemPrompt = `You help a small tech community in Winnipeg, Manitoba, Canada pick an idea for a weekend meetup.
 
-Reply with exactly two parts, in English, no quotes, no emoji:
-1. First line: the poll option. Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne". At most 70 characters.
-2. Then a blank line, then one short paragraph of details (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring.
+Reply with exactly two parts, no quotes, no emoji:
+1. First line: the poll option, in English. Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne". At most 70 characters.
+2. Then a blank line, then one short paragraph of details IN UKRAINIAN (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring. Keep venue and street names as they are.
 
 Rules for the option:
 - Pick one of the three offered days and give an approximate start time.
