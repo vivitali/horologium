@@ -94,12 +94,12 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 
 	model := c.latestModel(ctx)
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     model,
+		Model: model,
 		// Newer Haiku models think before answering; leave room for it and
 		// keep effort low so a one-liner doesn't burn tokens.
 		MaxTokens:    2000,
 		OutputConfig: anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow},
-		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
+		System:       []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
 		},
