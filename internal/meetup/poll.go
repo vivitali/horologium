@@ -9,7 +9,7 @@ import (
 const (
 	// OptionCannot is always the last poll option and is excluded from the
 	// winner computation.
-	OptionCannot = "❌ Цього місяця не можу"
+	OptionCannot = "❌ Цього разу без мене"
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
 	// MaxIdeaLen leaves room for the "🤖 " prefix inside MaxOptionLen.
@@ -49,7 +49,7 @@ func UkrRange(w Weekend) string {
 
 // Question is the poll question naming the weekend's dates.
 func Question(w Weekend) string {
-	return fmt.Sprintf("Зустріч в останні вихідні місяця (%s)?", UkrRange(w))
+	return fmt.Sprintf("Коли зустрічаємось в останні вихідні (%s)? Можна обрати кілька варіантів", UkrRange(w))
 }
 
 // Options builds the poll options (7, or 6 without an idea; Telegram allows 10).

@@ -159,7 +159,7 @@ func TestRun_SummarizesAndPins(t *testing.T) {
 	if b.stopped != 111 || b.pinned != 222 {
 		t.Errorf("stopped=%d pinned=%d", b.stopped, b.pinned)
 	}
-	if !strings.Contains(b.sentText, "Голосів: 5") {
+	if !strings.Contains(b.sentText, "5 голосів") {
 		t.Errorf("summary = %q", b.sentText)
 	}
 	if s.st.Phase != PhaseDone {
@@ -173,7 +173,7 @@ func TestRun_SummarySkipsWhenBelowThreshold(t *testing.T) {
 	if !res.Success || res.Winner != "" || b.pinned != 0 {
 		t.Errorf("res=%+v pinned=%d", res, b.pinned)
 	}
-	if !strings.Contains(b.sentText, "пропускаємо") {
+	if !strings.Contains(b.sentText, "не збираємось") {
 		t.Errorf("summary = %q", b.sentText)
 	}
 	if s.st.Phase != PhaseDone {
@@ -254,7 +254,7 @@ func TestRun_Summary_SendFailureThenResumeWithoutSecondStop(t *testing.T) {
 			t.Error("stopPoll must not be called again")
 		}
 	}
-	if !strings.Contains(b2.sentText, "Голосів: 5") {
+	if !strings.Contains(b2.sentText, "5 голосів") {
 		t.Errorf("summary = %q", b2.sentText)
 	}
 }

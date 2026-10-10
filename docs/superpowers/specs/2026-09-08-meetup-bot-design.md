@@ -52,7 +52,7 @@ inbound path entirely.
 | Number of polls | One, multi-select, non-anonymous, Ukrainian. |
 | Anchor | S = last Saturday of the month. Fri = S-1, Sun = S+1. |
 | Schedule | Daily EventBridge tick at 14:00 UTC; code decides. Poll on S-11 (Monday). Summary on S-3 (Wednesday). |
-| Winner | Most votes excluding "не можу". Tie → earliest option. Fewer than **4** votes → skip month. |
+| Winner | Most votes excluding "без мене". Tie → earliest option. Fewer than **4** votes → skip month. |
 | Summary | Posted as a message; pinned when there is a winner. |
 | AI idea | `claude-haiku-4-5`. Inputs: Winnipeg, the three dates, month/season, past ideas. Output: `<slot> — <activity>`, Ukrainian, short. Must not mention season or weather. On error the poll ships without it. |
 | Chat | Same group as the digest; bot is admin with pin rights. Pin failure is logged, never fatal. |
@@ -98,7 +98,7 @@ poll window is missed, the month is silently skipped.
   "month": "2026-10",
   "phase": "polled",
   "poll_message_id": 1234,
-  "options": ["🍻 …", "☕ …", "☕ …", "🤖 …", "❌ Цього місяця не можу"],
+  "options": ["🍻 …", "☕ …", "☕ …", "🤖 …", "❌ Цього разу без мене"],
   "past_ideas": ["Субота після обіду — лижі в Windsor Park", "…"]
 }
 ```
@@ -111,7 +111,7 @@ even if the option builder changes later. `past_ideas` keeps the last 12.
 Question (≤300 chars):
 
 ```
-Зустріч в останні вихідні місяця (24–26 жовтня)?
+Коли зустрічаємось в останні вихідні (24–26 жовтня)? Можна обрати кілька варіантів
 ```
 
 If Sunday falls in the next month: `(30 жовтня – 1 листопада)`.
@@ -124,7 +124,7 @@ Options (each ≤100 chars), `allows_multiple_answers=true`, `is_anonymous=false
 4. `☕ Неділя 26 жовтня, ~12:00–13:00 — кава`
 5. `🍻 Неділя 26 жовтня, ~18:30–19:00 — кава/пиво`
 6. `🤖 <slot> — <activity>` (omitted entirely if generation failed)
-7. `❌ Цього місяця не можу` (always last)
+7. `❌ Цього разу без мене` (always last)
 
 ### Summary
 
@@ -133,10 +133,10 @@ among all options except the last; ties → lowest index. With a winner and
 count ≥ 4:
 
 ```
-📌 Зустріч цього місяця: Субота 25 жовтня, ~12:00–13:00 — кава
-Голосів: 5
+📌 Домовились: ☕ Субота 25 жовтня, ~12:00–13:00 — кава
+5 голосів — до зустрічі!
 
-Усі варіанти:
+Як голосували:
 🍻 Пʼятниця 24 жовтня, ~18:30–19:00 — кава/пиво — 2
 ☕ Субота 25 жовтня, ~12:00–13:00 — кава — 5
 …
@@ -145,7 +145,7 @@ count ≥ 4:
 Otherwise:
 
 ```
-😴 Цього місяця пропускаємо — замало голосів (максимум 2, потрібно 4).
+Цього разу не збираємось: найбільше 2 голоси, а треба хоча б 4. Спробуємо наступного місяця 🙂
 ```
 
 Sent as MarkdownV2 (escaped). Pinned only when there is a winner.

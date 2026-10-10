@@ -35,10 +35,10 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 		if winner < len(options) {
 			label = options[winner]
 		}
-		sb.WriteString("📌 *Зустріч цього місяця:* ")
+		sb.WriteString("📌 *Домовились:* ")
 		sb.WriteString(esc(label))
 		sb.WriteString("\n")
-		sb.WriteString(esc(fmt.Sprintf("Голосів: %d", countAt(counts, winner))))
+		sb.WriteString(esc(fmt.Sprintf("%d %s — до зустрічі!", countAt(counts, winner), votesWord(countAt(counts, winner)))))
 	} else {
 		maxVotes := 0
 		for i := 0; i < len(counts)-1; i++ {
@@ -46,15 +46,28 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 				maxVotes = counts[i]
 			}
 		}
-		sb.WriteString(esc(fmt.Sprintf("😴 Цього місяця пропускаємо — замало голосів (максимум %d, потрібно %d).", maxVotes, MinVotes)))
+		sb.WriteString(esc(fmt.Sprintf("Цього разу не збираємось: найбільше %d %s, а треба хоча б %d. Спробуємо наступного місяця 🙂", maxVotes, votesWord(maxVotes), MinVotes)))
 	}
 	sb.WriteString("\n\n")
-	sb.WriteString(esc("Усі варіанти:"))
+	sb.WriteString(esc("Як голосували:"))
 	for i, o := range options {
 		sb.WriteString("\n")
 		sb.WriteString(esc(fmt.Sprintf("%s — %d", o, countAt(counts, i))))
 	}
 	return sb.String()
+}
+
+// votesWord declines "голос" for n: 1 голос, 2–4 голоси, 5+ голосів.
+func votesWord(n int) string {
+	n10, n100 := n%10, n%100
+	switch {
+	case n10 == 1 && n100 != 11:
+		return "голос"
+	case n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14):
+		return "голоси"
+	default:
+		return "голосів"
+	}
 }
 
 func countAt(counts []int, i int) int {
