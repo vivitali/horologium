@@ -38,7 +38,9 @@ func TestOptions_WithIdea(t *testing.T) {
 	want := []string{
 		"🍻 Пʼятниця 25 вересня, ~18:30–19:00 — кава/пиво",
 		"☕ Субота 26 вересня, ~12:00–13:00 — кава",
+		"🍻 Субота 26 вересня, ~18:30–19:00 — кава/пиво",
 		"☕ Неділя 27 вересня, ~12:00–13:00 — кава",
+		"🍻 Неділя 27 вересня, ~18:30–19:00 — кава/пиво",
 		"🤖 Субота після обіду — більярд на Осборн",
 		OptionCannot,
 	}
@@ -58,7 +60,7 @@ func TestOptions_WithIdea(t *testing.T) {
 func TestOptions_WithoutIdea(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	got := Options(w, "")
-	if len(got) != 4 || got[3] != OptionCannot {
+	if len(got) != 6 || got[5] != OptionCannot {
 		t.Errorf("got %q", got)
 	}
 }
@@ -67,10 +69,10 @@ func TestOptions_TruncatesLongIdea(t *testing.T) {
 	w := LastWeekend(2026, time.September, wpg)
 	long := strings.Repeat("я", 150)
 	got := Options(w, long)
-	if utf8.RuneCountInString(got[3]) > MaxOptionLen {
-		t.Errorf("idea option not truncated: %d runes", utf8.RuneCountInString(got[3]))
+	if utf8.RuneCountInString(got[5]) > MaxOptionLen {
+		t.Errorf("idea option not truncated: %d runes", utf8.RuneCountInString(got[5]))
 	}
-	if !strings.HasPrefix(got[3], "🤖 ") {
-		t.Errorf("missing prefix: %q", got[3])
+	if !strings.HasPrefix(got[5], "🤖 ") {
+		t.Errorf("missing prefix: %q", got[5])
 	}
 }

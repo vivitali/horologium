@@ -105,10 +105,10 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	if !strings.Contains(b.pollQ, "30 жовтня – 1 листопада") {
 		t.Errorf("question = %q", b.pollQ)
 	}
-	if len(b.pollOpts) != 5 || b.pollOpts[3] != "🤖 Субота 14:00 — більярд" {
+	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 Субота 14:00 — більярд" {
 		t.Errorf("options = %q", b.pollOpts)
 	}
-	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 5 {
+	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 7 {
 		t.Errorf("state = %+v", s.st)
 	}
 	if len(s.st.PastIdeas) != 2 || s.st.PastIdeas[1] != "Субота 14:00 — більярд" {
@@ -122,7 +122,7 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 func TestRun_SendsPollWithoutIdeaOnGeneratorError(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{}
 	res := Run(context.Background(), deps(b, s, &fakeIdeas{err: errors.New("down")}), tick(2026, 10, 20))
-	if !res.Success || len(b.pollOpts) != 4 || b.pollOpts[3] != OptionCannot {
+	if !res.Success || len(b.pollOpts) != 6 || b.pollOpts[5] != OptionCannot {
 		t.Errorf("res=%+v opts=%q", res, b.pollOpts)
 	}
 }

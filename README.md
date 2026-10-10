@@ -251,7 +251,7 @@ the month (Fri = S−1, Sun = S+1).
 
 | Day | Action |
 |---|---|
-| S−11 | Send one multi-select, non-anonymous poll naming the three dates: Fri ~18:30 кава/пиво, Sat ~12:00 кава, Sun ~12:00 кава, a 🤖 AI idea (own slot + activity), ❌ can't this month |
+| S−11 | Send one multi-select, non-anonymous poll naming the three dates: Fri ~18:30 кава/пиво, Sat and Sun at ~12:00 кава or ~18:30 кава/пиво, a 🤖 AI idea (own slot + activity), ❌ can't this month |
 | S−3 | `stopPoll`, pick the option with the most votes (❌ excluded, ties → earliest). ≥4 votes: post + pin the winner. Otherwise post "skipping this month" |
 
 A missed tick self-heals the next day; running a tick twice is a no-op

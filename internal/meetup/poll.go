@@ -52,13 +52,16 @@ func Question(w Weekend) string {
 	return fmt.Sprintf("Зустріч в останні вихідні місяця (%s)?", UkrRange(w))
 }
 
-// Options builds the poll options. idea == "" omits the AI option.
+// Options builds the poll options (7, or 6 without an idea; Telegram allows 10).
+// idea == "" omits the AI option.
 // The cannot-attend option is always last.
 func Options(w Weekend, idea string) []string {
 	opts := []string{
 		fmt.Sprintf("🍻 Пʼятниця %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Fri)),
 		fmt.Sprintf("☕ Субота %s, ~12:00–13:00 — кава", UkrDate(w.Sat)),
+		fmt.Sprintf("🍻 Субота %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Sat)),
 		fmt.Sprintf("☕ Неділя %s, ~12:00–13:00 — кава", UkrDate(w.Sun)),
+		fmt.Sprintf("🍻 Неділя %s, ~18:30–19:00 — кава/пиво", UkrDate(w.Sun)),
 	}
 	if idea = strings.TrimSpace(idea); idea != "" {
 		opts = append(opts, ideaPrefix+truncateRunes(idea, MaxIdeaLen))

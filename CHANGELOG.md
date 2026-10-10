@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Meetup bot** (`cmd/meetup`, Lambda `winnipeg-meetup-bot`): a dedicated Telegram bot that polls the group about the last weekend of each month (Fri evening / Sat noon / Sun noon / an AI-generated idea from Claude Haiku / can't make it), reads the counts back with `stopPoll` three days before the weekend, and posts + pins the winner when it has at least 4 votes. State lives in SSM `/winnipeg-tech-events/meetup-state`; a daily EventBridge tick drives it. New env: `TELEGRAM_MEETUP_BOT_TOKEN`, `TELEGRAM_MEETUP_CHAT_ID`, `ANTHROPIC_API_KEY`, `MEETUP_SSM_PARAM`.
+- **Meetup bot** (`cmd/meetup`, Lambda `winnipeg-meetup-bot`): a dedicated Telegram bot that polls the group about the last weekend of each month (Fri evening / Sat and Sun noon or evening / an AI-generated idea from Claude Haiku / can't make it), reads the counts back with `stopPoll` three days before the weekend, and posts + pins the winner when it has at least 4 votes. State lives in SSM `/winnipeg-tech-events/meetup-state`; a daily EventBridge tick drives it. New env: `TELEGRAM_MEETUP_BOT_TOKEN`, `TELEGRAM_MEETUP_CHAT_ID`, `ANTHROPIC_API_KEY`, `MEETUP_SSM_PARAM`.
 - `scripts/check`, `scripts/test`, `scripts/build`, `scripts/ship` contract scripts and a repo `CLAUDE.md`.
 
 ### Removed

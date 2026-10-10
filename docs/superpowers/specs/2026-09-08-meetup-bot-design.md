@@ -120,9 +120,11 @@ Options (each ≤100 chars), `allows_multiple_answers=true`, `is_anonymous=false
 
 1. `🍻 Пʼятниця 24 жовтня, ~18:30–19:00 — кава/пиво`
 2. `☕ Субота 25 жовтня, ~12:00–13:00 — кава`
-3. `☕ Неділя 26 жовтня, ~12:00–13:00 — кава`
-4. `🤖 <slot> — <activity>` (omitted entirely if generation failed)
-5. `❌ Цього місяця не можу` (always last)
+3. `🍻 Субота 25 жовтня, ~18:30–19:00 — кава/пиво`
+4. `☕ Неділя 26 жовтня, ~12:00–13:00 — кава`
+5. `🍻 Неділя 26 жовтня, ~18:30–19:00 — кава/пиво`
+6. `🤖 <slot> — <activity>` (omitted entirely if generation failed)
+7. `❌ Цього місяця не можу` (always last)
 
 ### Summary
 
