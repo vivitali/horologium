@@ -69,14 +69,15 @@ func (m *memStore) Put(ctx context.Context, s State) error {
 }
 
 type fakeIdeas struct {
-	idea string
-	err  error
-	in   IdeaInput
+	idea    string
+	details string
+	err     error
+	in      IdeaInput
 }
 
-func (f *fakeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error) {
+func (f *fakeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) {
 	f.in = in
-	return f.idea, f.err
+	return Idea{Text: f.idea, Details: f.details}, f.err
 }
 
 func deps(b *fakeBot, s *memStore, i *fakeIdeas) Deps {
@@ -97,7 +98,7 @@ func TestRun_Noop_BeforeWindow(t *testing.T) {
 }
 
 func TestRun_SendsPollWithIdea(t *testing.T) {
-	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Sat ~2pm — pool"}
+	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Sat ~2pm — pool", details: "Pool hall on Osborne, $10/hour."}
 	res := Run(context.Background(), deps(b, s, i), tick(2026, 10, 20))
 	if !res.Success || res.Step != "send_poll" || res.PollMessageID != 111 {
 		t.Fatalf("res=%+v", res)
@@ -110,6 +111,9 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	}
 	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 7 {
 		t.Errorf("state = %+v", s.st)
+	}
+	if s.st.IdeaDetails != "Pool hall on Osborne, $10/hour." {
+		t.Errorf("idea details not stored: %+v", s.st)
 	}
 	if len(s.st.PastIdeas) != 2 || s.st.PastIdeas[1] != "Sat ~2pm — pool" {
 		t.Errorf("past ideas = %v", s.st.PastIdeas)
@@ -364,5 +368,21 @@ func TestPutWithRetry_StopsOnCancelledContext(t *testing.T) {
 	d.Sleep = func(time.Duration) { cancel() }
 	if err := putWithRetry(ctx, d, State{}); err == nil || s.puts != 1 {
 		t.Errorf("err=%v puts=%d", err, s.puts)
+	}
+}
+
+func TestRun_SummaryShowsIdeaDetailsOnlyWhenIdeaWins(t *testing.T) {
+	st := polledState()
+	st.IdeaDetails = "Pool hall on Osborne, $10/hour."
+	b, s := &fakeBot{counts: []int{0, 1, 0, 5, 0}}, &memStore{st: st}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if !res.Success || res.Winner != "🤖 idea" || !strings.Contains(b.sentText, "Pool hall on Osborne") {
+		t.Errorf("idea win: res=%+v text=%q", res, b.sentText)
+	}
+	st.IdeaDetails = "Pool hall on Osborne, $10/hour."
+	b, s = &fakeBot{counts: []int{0, 5, 0, 1, 0}}, &memStore{st: st}
+	res = Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
+	if !res.Success || res.Winner != "☕ sat" || strings.Contains(b.sentText, "Pool hall") {
+		t.Errorf("other win must not show details: res=%+v text=%q", res, b.sentText)
 	}
 }

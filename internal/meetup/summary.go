@@ -27,7 +27,8 @@ func PickWinner(counts []int) (int, bool) {
 }
 
 // FormatSummary renders the MarkdownV2 message announcing the decision.
-func FormatSummary(options []string, counts []int, winner int, ok bool) string {
+// ideaDetails is appended only when the winning option is the 🤖 idea.
+func FormatSummary(options []string, counts []int, winner int, ok bool, ideaDetails string) string {
 	esc := telegram.EscapeMarkdownV2
 	var sb strings.Builder
 	sb.WriteString(esc(Tag))
@@ -41,6 +42,10 @@ func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 		sb.WriteString(esc(label))
 		sb.WriteString("\n")
 		sb.WriteString(esc(fmt.Sprintf("%d %s. See you there!", countAt(counts, winner), votesWord(countAt(counts, winner)))))
+		if ideaDetails != "" && strings.HasPrefix(label, ideaPrefix) {
+			sb.WriteString("\nℹ️ ")
+			sb.WriteString(esc(ideaDetails))
+		}
 	} else {
 		maxVotes := 0
 		for i := 0; i < len(counts)-1; i++ {

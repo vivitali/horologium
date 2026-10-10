@@ -79,15 +79,18 @@ func fakeAnthropic(t *testing.T, text string, status int) (*httptest.Server, *ma
 }
 
 func TestClaudeIdeas_Generate(t *testing.T) {
-	srv, req := fakeAnthropic(t, "\"Sat ~2pm — skiing at Windsor Park\"\n", http.StatusOK)
+	srv, req := fakeAnthropic(t, "\"Sat ~2pm — skiing at Windsor Park\"\n\nDetails: Rent skis at the park pavilion, about $15. Free parking.\n", http.StatusOK)
 	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
 	w := LastWeekend(2027, time.January, wpg)
 	got, err := g.Generate(context.Background(), IdeaInput{Weekend: w, PastIdeas: []string{"bowling"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != "Sat ~2pm — skiing at Windsor Park" {
-		t.Errorf("got %q", got)
+	if got.Text != "Sat ~2pm — skiing at Windsor Park" {
+		t.Errorf("text = %q", got.Text)
+	}
+	if got.Details != "Rent skis at the park pavilion, about $15. Free parking." {
+		t.Errorf("details = %q", got.Details)
 	}
 	if (*req)["model"] != "claude-haiku-7" {
 		t.Errorf("model = %v, want the newest haiku from the models list", (*req)["model"])
@@ -131,5 +134,12 @@ func TestLatestModel_FallsBackWhenListFails(t *testing.T) {
 	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
 	if got := g.latestModel(context.Background()); got != IdeaModel {
 		t.Errorf("got %q want %q", got, IdeaModel)
+	}
+}
+
+func TestParseIdea_NoDetails(t *testing.T) {
+	got := parseIdea("Sun 1pm — bowling\n")
+	if got.Text != "Sun 1pm — bowling" || got.Details != "" {
+		t.Errorf("got %+v", got)
 	}
 }

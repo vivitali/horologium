@@ -27,9 +27,19 @@ type IdeaInput struct {
 	Conditions string
 }
 
-// IdeaGenerator produces the "🤖" poll option text (without the prefix).
+// Idea is the AI poll option: the one-line option text (without the 🤖
+// prefix) and a short details blurb shown in the summary if it wins.
+type Idea struct {
+	Text    string
+	Details string
+}
+
+// MaxDetailsLen caps the details blurb so the summary stays short.
+const MaxDetailsLen = 350
+
+// IdeaGenerator produces the AI poll option.
 type IdeaGenerator interface {
-	Generate(ctx context.Context, in IdeaInput) (string, error)
+	Generate(ctx context.Context, in IdeaInput) (Idea, error)
 }
 
 // ClaudeIdeas generates ideas with the Anthropic API.
@@ -50,20 +60,21 @@ func NewClaudeIdeas(apiKey string, opts ...option.RequestOption) *ClaudeIdeas {
 
 const ideaSystemPrompt = `You help a small tech community in Winnipeg, Manitoba, Canada pick an idea for a weekend meetup.
 
-Rules for your reply:
-- Exactly one line, in English, no explanation, no quotes, no emoji.
-- Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne".
-- At most 70 characters.
+Reply with exactly two parts, in English, no quotes, no emoji:
+1. First line: the poll option. Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne". At most 70 characters.
+2. Then a blank line, then one short paragraph of details (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring.
+
+Rules for the option:
 - Pick one of the three offered days and give an approximate start time.
 - The activity must be real and available in or near Winnipeg: sports, walks, games, exhibitions, board-game cafes, museums, tech events, and so on.
 - Take the season and likely weather into account so the idea fits, but NEVER mention the season, month, or weather in the text.
 - Do not repeat anything from the list of past ideas.`
 
-// Generate asks Claude for one idea line. Empty output is an error so the
-// caller can drop the option.
-func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error) {
+// Generate asks Claude for one idea. An empty option line is an error so
+// the caller can drop the option.
+func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) {
 	if c.apiKey == "" {
-		return "", fmt.Errorf("ANTHROPIC_API_KEY not set")
+		return Idea{}, fmt.Errorf("ANTHROPIC_API_KEY not set")
 	}
 	w := in.Weekend
 	var user strings.Builder
@@ -84,14 +95,14 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error
 	model := c.latestModel(ctx)
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     model,
-		MaxTokens: 200,
+		MaxTokens: 400,
 		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
 		},
 	})
 	if err != nil {
-		return "", fmt.Errorf("anthropic: %w", err)
+		return Idea{}, fmt.Errorf("anthropic: %w", err)
 	}
 	var text strings.Builder
 	for _, block := range resp.Content {
@@ -99,11 +110,33 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (string, error
 			text.WriteString(tb.Text)
 		}
 	}
-	idea := cleanIdea(text.String())
-	if idea == "" {
-		return "", fmt.Errorf("anthropic: empty idea")
+	idea := parseIdea(text.String())
+	if idea.Text == "" {
+		return Idea{}, fmt.Errorf("anthropic: empty idea")
 	}
 	return idea, nil
+}
+
+// parseIdea splits the reply: first non-empty line is the option, the rest
+// (joined, with an optional "Details:" label stripped) is the blurb.
+func parseIdea(raw string) Idea {
+	var idea Idea
+	var rest []string
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if idea.Text == "" {
+			idea.Text = cleanIdea(line)
+			continue
+		}
+		rest = append(rest, line)
+	}
+	details := strings.TrimSpace(strings.Join(rest, " "))
+	details = strings.TrimSpace(strings.TrimPrefix(details, "Details:"))
+	idea.Details = truncateRunes(details, MaxDetailsLen)
+	return idea
 }
 
 // latestModel returns the newest model whose id starts with ideaModelPrefix,

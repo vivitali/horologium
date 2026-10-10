@@ -162,6 +162,9 @@ Sent as MarkdownV2 (escaped). Pinned only when there is a winner.
   past-ideas list.
 - User message: the three dates, month name, season word, optional
   conditions hint, past ideas.
+- Output has two parts: the option line, then a short details blurb (venue,
+  how to get there, cost / what to bring; ≤ 350 chars). The blurb is stored
+  in state and shown in the summary only when the 🤖 option wins.
 - Parsing: first non-empty line, trimmed, hard-capped to 96 characters so
   `🤖 ` + text fits Telegram's 100-char option limit. Empty → treated as
   failure.

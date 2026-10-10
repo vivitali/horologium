@@ -103,7 +103,7 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 }
 
 func sendPoll(ctx context.Context, deps Deps, w Weekend, st State) Result {
-	idea := ""
+	var idea Idea
 	if deps.Ideas != nil {
 		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, PastIdeas: st.PastIdeas})
 		if err != nil {
@@ -113,7 +113,7 @@ func sendPoll(ctx context.Context, deps Deps, w Weekend, st State) Result {
 		}
 	}
 	question := Question(w)
-	options := Options(w, idea)
+	options := Options(w, idea.Text)
 
 	if deps.TestMode {
 		log.Printf("test mode: would send poll %q with options %q to %s", question, options, deps.ChatID)
@@ -127,7 +127,8 @@ func sendPoll(ctx context.Context, deps Deps, w Weekend, st State) Result {
 	st.Phase = PhasePolled
 	st.PollMessageID = id
 	st.Options = options
-	st.RememberIdea(idea)
+	st.IdeaDetails = idea.Details
+	st.RememberIdea(idea.Text)
 	if err := putWithRetry(ctx, deps, st); err != nil {
 		// The poll is out but we lost track of it; the next tick would send
 		// another. Tell the group so a human can intervene.
@@ -212,7 +213,7 @@ func summarize(ctx context.Context, deps Deps, st State) Result {
 		}
 	}
 	winner, ok := PickWinner(counts)
-	text := FormatSummary(st.Options, counts, winner, ok)
+	text := FormatSummary(st.Options, counts, winner, ok, st.IdeaDetails)
 
 	msgID, err := deps.Bot.SendMessageID(deps.ChatID, text)
 	if err != nil {

@@ -41,7 +41,7 @@ func TestPickWinner_BelowThreshold(t *testing.T) {
 
 func TestFormatSummary_Winner(t *testing.T) {
 	opts := []string{"🍻 Fri Sep 25, ~6:30pm", "☕ Sat Sep 26, ~12:30pm", OptionCannot}
-	got := FormatSummary(opts, []int{2, 5, 1}, 1, true)
+	got := FormatSummary(opts, []int{2, 5, 1}, 1, true, "")
 	if !strings.HasPrefix(got, "\\#meetup\n") {
 		t.Errorf("summary must start with the escaped tag:\n%s", got)
 	}
@@ -66,7 +66,7 @@ func TestFormatSummary_Winner(t *testing.T) {
 }
 
 func TestFormatSummary_WinnerWithMissingOptions(t *testing.T) {
-	got := FormatSummary(nil, []int{0, 6, 0}, 1, true)
+	got := FormatSummary(nil, []int{0, 6, 0}, 1, true, "")
 	if !strings.Contains(got, "option \\#2") || strings.Contains(got, "No meetup") {
 		t.Errorf("unexpected:\n%s", got)
 	}
@@ -74,7 +74,7 @@ func TestFormatSummary_WinnerWithMissingOptions(t *testing.T) {
 
 func TestFormatSummary_Skip(t *testing.T) {
 	opts := []string{"a", "b", OptionCannot}
-	got := FormatSummary(opts, []int{2, 1, 6}, 0, false)
+	got := FormatSummary(opts, []int{2, 1, 6}, 0, false, "ignored")
 	if !strings.Contains(got, "No meetup this time") || !strings.Contains(got, "got 2 votes, and it takes at least 4") {
 		t.Errorf("unexpected skip text:\n%s", got)
 	}
@@ -86,5 +86,17 @@ func TestVotesWord(t *testing.T) {
 		if got := votesWord(n); got != want {
 			t.Errorf("%d: got %q want %q", n, got, want)
 		}
+	}
+}
+
+func TestFormatSummary_IdeaDetails(t *testing.T) {
+	opts := []string{"🍻 Fri", "🤖 Sat ~2pm — pool", OptionCannot}
+	got := FormatSummary(opts, []int{1, 5, 0}, 1, true, "Pool hall on Osborne. Bus 18 stops outside.")
+	if !strings.Contains(got, "ℹ️ Pool hall on Osborne\\. Bus 18 stops outside\\.") {
+		t.Errorf("details missing or unescaped:\n%s", got)
+	}
+	got = FormatSummary(opts, []int{5, 1, 0}, 0, true, "Pool hall on Osborne.")
+	if strings.Contains(got, "Pool hall") {
+		t.Errorf("details shown for a non-idea winner:\n%s", got)
 	}
 }
