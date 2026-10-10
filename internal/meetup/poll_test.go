@@ -41,7 +41,7 @@ func TestOptions_WithIdea(t *testing.T) {
 		"🍻 Sat Sep 26, ~6:30pm",
 		"☕ Sun Sep 27, ~12:30pm",
 		"🍻 Sun Sep 27, ~6:30pm",
-		"🤖 AI suggestion: Sat ~2pm — pool on Osborne",
+		"🤖 AI pick: Sat ~2pm — pool on Osborne",
 		OptionCannot,
 	}
 	if len(got) != len(want) {

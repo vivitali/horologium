@@ -12,9 +12,9 @@ const (
 	OptionCannot = "❌ Can't make it this time"
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
-	ideaPrefix   = "🤖 AI suggestion: "
-	// MaxIdeaLen leaves room for ideaPrefix inside MaxOptionLen (prefix is 18 runes).
-	MaxIdeaLen = MaxOptionLen - 18
+	ideaPrefix   = "🤖 AI pick: "
+	// MaxIdeaLen leaves room for ideaPrefix inside MaxOptionLen (prefix is 11 runes).
+	MaxIdeaLen = MaxOptionLen - 11
 	// Tag makes every poll and summary findable with one tap in Telegram.
 	Tag = "#meetup"
 )

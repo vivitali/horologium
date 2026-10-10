@@ -106,7 +106,7 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	if !strings.Contains(b.pollQ, "Oct 30 – Nov 1") {
 		t.Errorf("question = %q", b.pollQ)
 	}
-	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 AI suggestion: Sat ~2pm — pool" {
+	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 AI pick: Sat ~2pm — pool" {
 		t.Errorf("options = %q", b.pollOpts)
 	}
 	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 7 {
@@ -151,7 +151,7 @@ func TestRun_PollSendErrorLeavesStateUntouched(t *testing.T) {
 
 func polledState() State {
 	return State{Month: "2026-10", Phase: PhasePolled, PollMessageID: 111,
-		Options: []string{"🍻 fri", "☕ sat", "☕ sun", "🤖 idea", OptionCannot}}
+		Options: []string{"🍻 fri", "☕ sat", "☕ sun", "🤖 AI pick: idea", OptionCannot}}
 }
 
 func TestRun_SummarizesAndPins(t *testing.T) {
@@ -376,7 +376,7 @@ func TestRun_SummaryShowsIdeaDetailsOnlyWhenIdeaWins(t *testing.T) {
 	st.IdeaDetails = "Pool hall on Osborne, $10/hour."
 	b, s := &fakeBot{counts: []int{0, 1, 0, 5, 0}}, &memStore{st: st}
 	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
-	if !res.Success || res.Winner != "🤖 idea" || !strings.Contains(b.sentText, "Pool hall on Osborne") {
+	if !res.Success || res.Winner != "🤖 AI pick: idea" || !strings.Contains(b.sentText, "Pool hall on Osborne") {
 		t.Errorf("idea win: res=%+v text=%q", res, b.sentText)
 	}
 	st.IdeaDetails = "Pool hall on Osborne, $10/hour."

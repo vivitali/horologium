@@ -29,11 +29,11 @@ func TestSeason(t *testing.T) {
 
 func TestCleanIdea(t *testing.T) {
 	cases := map[string]string{
-		"Sat afternoon — pool":                           "Sat afternoon — pool",
-		"\n\n  \"Sun 1pm — bowling\"  \n":                "Sun 1pm — bowling",
-		"🤖 AI suggestion: Fri 7pm — trivia\nsecond line": "Fri 7pm — trivia",
-		strings.Repeat("я", 120):                         strings.Repeat("я", MaxIdeaLen-1) + "…",
-		"   ":                                            "",
+		"Sat afternoon — pool":                     "Sat afternoon — pool",
+		"\n\n  \"Sun 1pm — bowling\"  \n":          "Sun 1pm — bowling",
+		"🤖 AI pick: Fri 7pm — trivia\nsecond line": "Fri 7pm — trivia",
+		strings.Repeat("я", 120):                   strings.Repeat("я", MaxIdeaLen-1) + "…",
+		"   ":                                      "",
 	}
 	for in, want := range cases {
 		if got := cleanIdea(in); got != want {
