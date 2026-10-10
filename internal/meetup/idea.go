@@ -95,7 +95,10 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	model := c.latestModel(ctx)
 	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     model,
-		MaxTokens: 400,
+		// Newer Haiku models think before answering; leave room for it and
+		// keep effort low so a one-liner doesn't burn tokens.
+		MaxTokens:    2000,
+		OutputConfig: anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow},
 		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
@@ -112,7 +115,7 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	}
 	idea := parseIdea(text.String())
 	if idea.Text == "" {
-		return Idea{}, fmt.Errorf("anthropic: empty idea")
+		return Idea{}, fmt.Errorf("anthropic: empty idea (stop_reason=%s, blocks=%d, raw=%q)", resp.StopReason, len(resp.Content), truncateRunes(text.String(), 200))
 	}
 	return idea, nil
 }
