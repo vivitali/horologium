@@ -30,6 +30,8 @@ func PickWinner(counts []int) (int, bool) {
 func FormatSummary(options []string, counts []int, winner int, ok bool) string {
 	esc := telegram.EscapeMarkdownV2
 	var sb strings.Builder
+	sb.WriteString(esc(Tag))
+	sb.WriteString("\n")
 	if ok {
 		label := fmt.Sprintf("варіант #%d", winner+1)
 		if winner < len(options) {

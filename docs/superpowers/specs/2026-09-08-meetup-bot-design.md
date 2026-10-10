@@ -111,7 +111,7 @@ even if the option builder changes later. `past_ideas` keeps the last 12.
 Question (≤300 chars):
 
 ```
-Коли зустрічаємось в останні вихідні (24–26 жовтня)? Можна обрати кілька варіантів
+#зустріч Коли зустрічаємось в останні вихідні (24–26 жовтня)? Можна обрати кілька варіантів
 ```
 
 If Sunday falls in the next month: `(30 жовтня – 1 листопада)`.
@@ -133,6 +133,7 @@ among all options except the last; ties → lowest index. With a winner and
 count ≥ 4:
 
 ```
+#зустріч
 📌 Домовились: ☕ Субота 25 жовтня, ~12:00–13:00 — кава
 5 голосів — до зустрічі!
 

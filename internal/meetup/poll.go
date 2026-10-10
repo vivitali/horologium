@@ -15,6 +15,8 @@ const (
 	// MaxIdeaLen leaves room for the "🤖 " prefix inside MaxOptionLen.
 	MaxIdeaLen = 96
 	ideaPrefix = "🤖 "
+	// Tag makes every poll and summary findable with one tap in Telegram.
+	Tag = "#зустріч"
 )
 
 // Genitive month names, as used after a day number ("24 жовтня").
@@ -49,7 +51,7 @@ func UkrRange(w Weekend) string {
 
 // Question is the poll question naming the weekend's dates.
 func Question(w Weekend) string {
-	return fmt.Sprintf("Коли зустрічаємось в останні вихідні (%s)? Можна обрати кілька варіантів", UkrRange(w))
+	return fmt.Sprintf("%s Коли зустрічаємось в останні вихідні (%s)? Можна обрати кілька варіантів", Tag, UkrRange(w))
 }
 
 // Options builds the poll options (7, or 6 without an idea; Telegram allows 10).
