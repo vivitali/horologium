@@ -65,7 +65,10 @@ Reply with exactly two parts, no quotes, no emoji:
 2. Then a blank line, then one short paragraph of details IN UKRAINIAN (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring. Keep venue and street names as they are.
 
 Rules for the option:
-- Pick one of the three offered days and give an approximate start time.
+- Pick one of the three offered days and give an approximate start time, or a time range for a longer activity.
+- Friday is a workday. Two kinds of Friday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri 1pm–5pm — co-working at the Millennium Library café"). Nothing else during Friday work hours.
+- Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
+- Vary the format month to month: short hangouts, half-day activities, Friday co-working.
 - This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Good: board-game cafes, pool, bowling, trivia or quiz nights, curling, skating, a hike or river walk, BBQ or picnic, a beer or food festival, a market, a patio.
 - Avoid quiet or seated activities (museums, galleries, opera, theatre, cinema, lectures) unless it is an actual social event there, like a festival, party, or night market.
 - The place must be real and in or near Winnipeg.
