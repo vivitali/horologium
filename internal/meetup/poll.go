@@ -16,7 +16,7 @@ const (
 	MaxIdeaLen = 96
 	ideaPrefix = "🤖 "
 	// Tag makes every poll and summary findable with one tap in Telegram.
-	Tag = "#зустріч"
+	Tag = "#meetup"
 )
 
 // Genitive month names, as used after a day number ("24 жовтня").
