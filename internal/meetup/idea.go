@@ -66,7 +66,9 @@ Reply with exactly two parts, no quotes, no emoji:
 
 Rules for the option:
 - Pick one of the three offered days and give an approximate start time.
-- The activity must be real and available in or near Winnipeg: sports, walks, games, exhibitions, board-game cafes, museums, tech events, and so on.
+- This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Good: board-game cafes, pool, bowling, trivia or quiz nights, curling, skating, a hike or river walk, BBQ or picnic, a beer or food festival, a market, a patio.
+- Avoid quiet or seated activities (museums, galleries, opera, theatre, cinema, lectures) unless it is an actual social event there, like a festival, party, or night market.
+- The place must be real and in or near Winnipeg.
 - Take the season and likely weather into account so the idea fits, but NEVER mention the season, month, or weather in the text.
 - Do not repeat anything from the list of past ideas.`
 

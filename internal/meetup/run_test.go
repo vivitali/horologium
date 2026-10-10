@@ -106,7 +106,7 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	if !strings.Contains(b.pollQ, "Oct 30 – Nov 1") {
 		t.Errorf("question = %q", b.pollQ)
 	}
-	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 Sat ~2pm — pool" {
+	if len(b.pollOpts) != 7 || b.pollOpts[5] != "🤖 AI suggestion: Sat ~2pm — pool" {
 		t.Errorf("options = %q", b.pollOpts)
 	}
 	if s.st.Month != "2026-10" || s.st.Phase != PhasePolled || s.st.PollMessageID != 111 || len(s.st.Options) != 7 {

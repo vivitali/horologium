@@ -90,7 +90,7 @@ func TestVotesWord(t *testing.T) {
 }
 
 func TestFormatSummary_IdeaDetails(t *testing.T) {
-	opts := []string{"🍻 Fri", "🤖 Sat ~2pm — pool", OptionCannot}
+	opts := []string{"🍻 Fri", "🤖 AI suggestion: Sat ~2pm — pool", OptionCannot}
 	got := FormatSummary(opts, []int{1, 5, 0}, 1, true, "Більярдна на Osborne. Автобус 18 зупиняється поруч.")
 	if !strings.Contains(got, "ℹ️ Більярдна на Osborne\\. Автобус 18 зупиняється поруч\\.") {
 		t.Errorf("details missing or unescaped:\n%s", got)

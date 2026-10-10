@@ -123,7 +123,7 @@ Options (each ≤100 chars), `allows_multiple_answers=true`, `is_anonymous=false
 3. `🍻 Сб 25 жовтня, ~18:30`
 4. `☕ Нд 26 жовтня, ~12:30`
 5. `🍻 Нд 26 жовтня, ~18:30`
-6. `🤖 <slot> — <activity>` (omitted entirely if generation failed)
+6. `🤖 AI suggestion: <slot> — <activity>` (omitted entirely if generation failed)
 7. `❌ Цього разу не зможу` (always last)
 
 ### Summary
@@ -150,7 +150,7 @@ details blurb:
 
 ```
 #meetup
-💡 Пропозиція на обговорення: 🤖 Sat ~2pm — pool at a bar on Osborne
+💡 Пропозиція на обговорення: 🤖 AI suggestion: Sat ~2pm — pool at a bar on Osborne
 5 голосів. Обговоріть у чаті та домовтесь про деталі.
 ℹ️ <venue, how to get there, cost — Ukrainian, ≤ 350 chars>
 
