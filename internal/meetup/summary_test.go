@@ -54,7 +54,7 @@ func TestFormatSummary_Winner(t *testing.T) {
 	if !strings.Contains(got, "Як голосували:") || !strings.Contains(got, "18:30 — 2") {
 		t.Errorf("missing tally:\n%s", got)
 	}
-	if !strings.Contains(got, "без мене") {
+	if !strings.Contains(got, "Без мене") {
 		t.Errorf("tally should include the cannot option:\n%s", got)
 	}
 	// Every reserved char outside our own markup must be escaped.
