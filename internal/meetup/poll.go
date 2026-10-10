@@ -9,7 +9,7 @@ import (
 const (
 	// OptionCannot is always the last poll option and is excluded from the
 	// winner computation.
-	OptionCannot = "❌ Без мене"
+	OptionCannot = "❌ Цього разу не зможу"
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
 	// MaxIdeaLen leaves room for the "🤖 " prefix inside MaxOptionLen.

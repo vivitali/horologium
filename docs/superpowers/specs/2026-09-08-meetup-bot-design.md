@@ -98,7 +98,7 @@ poll window is missed, the month is silently skipped.
   "month": "2026-10",
   "phase": "polled",
   "poll_message_id": 1234,
-  "options": ["🍻 …", "☕ …", "☕ …", "🤖 …", "❌ Без мене"],
+  "options": ["🍻 …", "☕ …", "☕ …", "🤖 …", "❌ Цього разу не зможу"],
   "past_ideas": ["Субота після обіду — лижі в Windsor Park", "…"]
 }
 ```
@@ -124,7 +124,7 @@ Options (each ≤100 chars), `allows_multiple_answers=true`, `is_anonymous=false
 4. `☕ Нд 26 жовтня, 12:00`
 5. `🍻 Нд 26 жовтня, 18:30`
 6. `🤖 <slot> — <activity>` (omitted entirely if generation failed)
-7. `❌ Без мене` (always last)
+7. `❌ Цього разу не зможу` (always last)
 
 ### Summary
 
