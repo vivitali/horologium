@@ -131,9 +131,9 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
 		},
 	}
-	if model != IdeaModel {
+	if !strings.HasPrefix(model, IdeaModel) {
 		// Keep effort low so a one-liner doesn't burn thinking tokens.
-		// claude-haiku-4-5 rejects the parameter (verified 2026-10-11).
+		// claude-haiku-4-5 (any dated id) rejects the parameter (verified 2026-10-11).
 		params.OutputConfig = anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow}
 	}
 	resp, err := c.client.Messages.New(ctx, params)

@@ -147,13 +147,24 @@ func TestParseIdea_NoDetails(t *testing.T) {
 	}
 }
 
-func TestClaudeIdeas_NoEffortOnFallbackModel(t *testing.T) {
-	// Models list fails -> pinned fallback, which rejects output_config.effort.
+func TestClaudeIdeas_NoEffortOnHaiku45(t *testing.T) {
+	// Both the pinned fallback and a dated 4-5 id from the Models API reject
+	// output_config.effort.
+	for _, listed := range []string{"", "claude-haiku-4-5-20251001"} {
+		t.Run("listed="+listed, func(t *testing.T) { noEffortCase(t, listed) })
+	}
+}
+
+func noEffortCase(t *testing.T, listed string) {
 	var lastReq map[string]any
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		if r.URL.Path == "/v1/models" {
-			w.WriteHeader(http.StatusInternalServerError)
+			if listed == "" {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			_, _ = io.WriteString(w, `{"data":[{"type":"model","id":"`+listed+`","display_name":"H","created_at":"2025-10-01T00:00:00Z"}],"has_more":false}`)
 			return
 		}
 		b, _ := io.ReadAll(r.Body)
@@ -169,7 +180,10 @@ func TestClaudeIdeas_NoEffortOnFallbackModel(t *testing.T) {
 	if _, err := g.Generate(context.Background(), IdeaInput{Weekend: LastWeekend(2027, time.January, wpg)}); err != nil {
 		t.Fatal(err)
 	}
-	if lastReq["model"] != IdeaModel || lastReq["output_config"] != nil {
-		t.Errorf("fallback request must pin the model and omit output_config: model=%v output_config=%v", lastReq["model"], lastReq["output_config"])
+	if lastReq["output_config"] != nil {
+		t.Errorf("request to %v must omit output_config, got %v", lastReq["model"], lastReq["output_config"])
+	}
+	if listed == "" && lastReq["model"] != IdeaModel {
+		t.Errorf("fallback must pin %s, got %v", IdeaModel, lastReq["model"])
 	}
 }

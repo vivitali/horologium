@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf16"
 )
 
 const (
@@ -13,8 +14,8 @@ const (
 	// MaxOptionLen is Telegram's per-option character limit.
 	MaxOptionLen = 100
 	ideaPrefix   = "🤖 AI pick: "
-	// MaxIdeaLen leaves room for ideaPrefix inside MaxOptionLen. Telegram
-	// counts UTF-16 units: the prefix is 11 runes but 🤖 is 2 units, so 12.
+	// MaxIdeaLen leaves room for ideaPrefix inside MaxOptionLen, in UTF-16
+	// units as Telegram counts them: the prefix is 11 runes but 🤖 is 2 units.
 	MaxIdeaLen = MaxOptionLen - 12
 	// Tag makes every poll and summary findable with one tap in Telegram.
 	Tag = "#meetup"
@@ -56,10 +57,14 @@ func Options(w Weekend, idea string) []string {
 	return append(opts, OptionCannot)
 }
 
+// truncateRunes caps s at n UTF-16 units (Telegram's unit), appending "…".
 func truncateRunes(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
+	if len(utf16.Encode([]rune(s))) <= n {
 		return s
 	}
-	return strings.TrimSpace(string(r[:n-1])) + "…"
+	r := []rune(s)
+	for len(r) > 0 && len(utf16.Encode(r)) > n-1 {
+		r = r[:len(r)-1]
+	}
+	return strings.TrimSpace(string(r)) + "…"
 }

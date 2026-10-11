@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf16"
 	"unicode/utf8"
 )
 
@@ -74,5 +75,14 @@ func TestOptions_TruncatesLongIdea(t *testing.T) {
 	}
 	if !strings.HasPrefix(got[5], "🤖 ") {
 		t.Errorf("missing prefix: %q", got[5])
+	}
+}
+
+func TestOptions_TruncatesByUTF16Units(t *testing.T) {
+	w := LastWeekend(2026, time.September, wpg)
+	emoji := strings.Repeat("🎉", 60) // 60 runes, 120 UTF-16 units
+	got := Options(w, emoji)
+	if n := len(utf16.Encode([]rune(got[5]))); n > MaxOptionLen {
+		t.Errorf("option is %d UTF-16 units, max %d", n, MaxOptionLen)
 	}
 }
