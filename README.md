@@ -84,7 +84,8 @@ EOF
 
 # 3. One-time: SSM policy + parameters (needs IAM rights), then deploy
 ./deploy/bootstrap.sh
-./deploy/deploy.sh
+./deploy/deploy.sh              # prod
+STAGE=dev ./deploy/deploy.sh    # dev copy (-dev suffix everywhere), tokens from deploy/.env
 
 # 4. Smoke test
 aws lambda invoke --function-name winnipeg-tech-events \
