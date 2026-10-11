@@ -74,7 +74,7 @@ Reply with exactly two parts, no quotes, no emoji:
 
 Rules for the option:
 - You may pick ANY date inside the given window, not only the meetup weekend.
-- If a list of real upcoming local events is given, prefer one of them when it suits a group hangout (a tech meetup, social, workshop, demo night, festival, market). Keep its real name, date, and venue. Otherwise suggest a regular activity, ideally on the meetup weekend.
+- If a list of real upcoming local events is given, pick one of them whenever any could work for a group to attend together (a tech meetup, talk, workshop, social, demo night, festival, market). Keep its real name, date, start time, and venue. Only if nothing on the list is suitable, suggest a regular activity, ideally on the meetup weekend.
 - Give an approximate start time, or a time range for a longer activity.
 - Weekdays are workdays. Two kinds of weekday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri Oct 30 1pm–5pm — co-working at the Millennium Library café"). Nothing else during work hours.
 - Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
@@ -104,8 +104,9 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	}
 	if len(in.Events) > 0 {
 		user.WriteString("Real upcoming local events in the window:\n")
+		loc := w.Sat.Location()
 		for _, e := range in.Events {
-			fmt.Fprintf(&user, "- %s %s — %s", e.StartTime.Format("Mon Jan 2 3:04pm"), e.Name, e.Venue)
+			fmt.Fprintf(&user, "- %s %s — %s", e.StartTime.In(loc).Format("Mon Jan 2 3:04pm"), e.Name, e.Venue)
 			if e.URL != "" {
 				fmt.Fprintf(&user, " (%s)", e.URL)
 			}
