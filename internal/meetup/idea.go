@@ -9,6 +9,8 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+
+	"event_calendar/internal/models"
 )
 
 // IdeaModel is the fallback model for the AI option when the live lookup
@@ -25,6 +27,9 @@ type IdeaInput struct {
 	// the weekend and may point at an event worth visiting within ~3 weeks.
 	From, To  time.Time
 	PastIdeas []string
+	// Events are real upcoming local events inside the window (from the
+	// same scrapers the weekly digest uses). The model may pick one.
+	Events []models.Event
 	// Conditions is an optional free-text hint (e.g. a forecast). Empty today;
 	// reserved so a forecast can be added without changing the prompt shape.
 	Conditions string
@@ -68,7 +73,8 @@ Reply with exactly two parts, no quotes, no emoji:
 2. Then a blank line, then one short paragraph of details IN UKRAINIAN (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring. Keep venue and street names as they are.
 
 Rules for the option:
-- You may pick ANY date inside the given window, not only the meetup weekend. Prefer a real event worth visiting in that window if you know of one (festival, market, tech meetup, game, show, seasonal event); otherwise suggest a regular activity, ideally on the meetup weekend.
+- You may pick ANY date inside the given window, not only the meetup weekend.
+- If a list of real upcoming local events is given, prefer one of them when it suits a group hangout (a tech meetup, social, workshop, demo night, festival, market). Keep its real name, date, and venue. Otherwise suggest a regular activity, ideally on the meetup weekend.
 - Give an approximate start time, or a time range for a longer activity.
 - Weekdays are workdays. Two kinds of weekday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri Oct 30 1pm–5pm — co-working at the Millennium Library café"). Nothing else during work hours.
 - Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
@@ -95,6 +101,16 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	fmt.Fprintf(&user, "Season: %s.\n", Season(w.Sat.Month()))
 	if in.Conditions != "" {
 		fmt.Fprintf(&user, "Conditions: %s\n", in.Conditions)
+	}
+	if len(in.Events) > 0 {
+		user.WriteString("Real upcoming local events in the window:\n")
+		for _, e := range in.Events {
+			fmt.Fprintf(&user, "- %s %s — %s", e.StartTime.Format("Mon Jan 2 3:04pm"), e.Name, e.Venue)
+			if e.URL != "" {
+				fmt.Fprintf(&user, " (%s)", e.URL)
+			}
+			user.WriteString("\n")
+		}
 	}
 	if len(in.PastIdeas) > 0 {
 		user.WriteString("Past ideas (do not repeat):\n")

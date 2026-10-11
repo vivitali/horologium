@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"event_calendar/internal/models"
 )
 
 type fakeBot struct {
@@ -78,6 +80,15 @@ type fakeIdeas struct {
 func (f *fakeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) {
 	f.in = in
 	return Idea{Text: f.idea, Details: f.details}, f.err
+}
+
+type fakeEvents struct {
+	events []models.Event
+	err    error
+}
+
+func (f *fakeEvents) ScrapeEvents(city, category string, period time.Duration) ([]models.Event, error) {
+	return f.events, f.err
 }
 
 func deps(b *fakeBot, s *memStore, i *fakeIdeas) Deps {
@@ -387,5 +398,30 @@ func TestRun_SummaryShowsIdeaDetailsOnlyWhenIdeaWins(t *testing.T) {
 	res = Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 28))
 	if !res.Success || res.Winner != "☕ sat" || strings.Contains(b.sentText, "Pool hall") {
 		t.Errorf("other win must not show details: res=%+v text=%q", res, b.sentText)
+	}
+}
+
+func TestRun_PassesWindowedEventsToIdeaGenerator(t *testing.T) {
+	ev := &fakeEvents{events: []models.Event{
+		{Name: "Too early", StartTime: d(2026, 10, 19)},
+		{Name: "Tech Social", StartTime: d(2026, 10, 29).Add(18 * time.Hour), Venue: "Hub", URL: "https://x"},
+		{Name: "Too late", StartTime: d(2026, 11, 12)},
+	}}
+	i := &fakeIdeas{idea: "x"}
+	dd := deps(&fakeBot{}, &memStore{}, i)
+	dd.Events = ev
+	if res := Run(context.Background(), dd, tick(2026, 10, 20)); !res.Success {
+		t.Fatalf("res=%+v", res)
+	}
+	if len(i.in.Events) != 1 || i.in.Events[0].Name != "Tech Social" {
+		t.Errorf("events passed = %+v", i.in.Events)
+	}
+}
+
+func TestRun_EventScrapeFailureStillSendsPoll(t *testing.T) {
+	dd := deps(&fakeBot{}, &memStore{}, &fakeIdeas{idea: "x"})
+	dd.Events = &fakeEvents{err: errors.New("down")}
+	if res := Run(context.Background(), dd, tick(2026, 10, 20)); !res.Success || res.Step != "send_poll" {
+		t.Errorf("res=%+v", res)
 	}
 }

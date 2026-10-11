@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go/option"
+
+	"event_calendar/internal/models"
 )
 
 func TestSeason(t *testing.T) {
@@ -82,7 +84,8 @@ func TestClaudeIdeas_Generate(t *testing.T) {
 	srv, req := fakeAnthropic(t, "\"Sat ~2pm — skiing at Windsor Park\"\n\nDetails: Rent skis at the park pavilion, about $15. Free parking.\n", http.StatusOK)
 	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
 	w := LastWeekend(2027, time.January, wpg)
-	got, err := g.Generate(context.Background(), IdeaInput{Weekend: w, From: d(2027, 1, 19), To: d(2027, 2, 9), PastIdeas: []string{"bowling"}})
+	got, err := g.Generate(context.Background(), IdeaInput{Weekend: w, From: d(2027, 1, 19), To: d(2027, 2, 9), PastIdeas: []string{"bowling"},
+		Events: []models.Event{{Name: "Winnipeg Tech Social", StartTime: d(2027, 1, 28).Add(18 * time.Hour), Venue: "The Hub", URL: "https://evt"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +99,7 @@ func TestClaudeIdeas_Generate(t *testing.T) {
 		t.Errorf("model = %v, want the newest haiku from the models list", (*req)["model"])
 	}
 	body, _ := json.Marshal(*req)
-	for _, want := range []string{"Jan 29", "Jan 30", "Jan 31", "Tue Jan 19 to Tue Feb 9", "winter", "bowling", "Winnipeg"} {
+	for _, want := range []string{"Jan 29", "Jan 30", "Jan 31", "Tue Jan 19 to Tue Feb 9", "winter", "bowling", "Winnipeg", "Thu Jan 28 6:00pm Winnipeg Tech Social — The Hub (https://evt)"} {
 		if !strings.Contains(string(body), want) {
 			t.Errorf("request missing %q:\n%s", want, body)
 		}

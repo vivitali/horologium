@@ -6,8 +6,18 @@ import (
 	"log"
 	"time"
 
+	"event_calendar/internal/models"
 	"event_calendar/pkg/telegram"
 )
+
+// EventSource lists upcoming local events; *scraping.ScrapingService
+// satisfies it. Optional: without it the AI pick has no event list.
+type EventSource interface {
+	ScrapeEvents(city, category string, period time.Duration) ([]models.Event, error)
+}
+
+// maxIdeaEvents caps the list handed to the model.
+const maxIdeaEvents = 15
 
 // Bot is the slice of the Telegram client the flow needs.
 // *telegram.Service satisfies it.
@@ -23,7 +33,9 @@ type Deps struct {
 	Bot      Bot
 	Store    Store
 	Ideas    IdeaGenerator
-	BotToken string // validated up front so a misconfigured deploy fails on every tick, not on poll day
+	Events   EventSource // optional
+	City     string      // for Events; defaults to Winnipeg
+	BotToken string      // validated up front so a misconfigured deploy fails on every tick, not on poll day
 	ChatID   string
 	TestMode bool
 	Loc      *time.Location
@@ -105,7 +117,8 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st State) Result {
 	var idea Idea
 	if deps.Ideas != nil {
-		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: today, To: today.AddDate(0, 0, 21), PastIdeas: st.PastIdeas})
+		from, to := today, today.AddDate(0, 0, 21)
+		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: from, To: to, PastIdeas: st.PastIdeas, Events: upcomingEvents(deps, from, to)})
 		if err != nil {
 			log.Printf("meetup: idea generation failed, sending poll without AI option: %v", err)
 		} else {
@@ -136,6 +149,34 @@ func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st Sta
 		return fail(StepSendPoll.String(), "poll %d sent but state write failed: %v", id, err)
 	}
 	return Result{Success: true, Step: StepSendPoll.String(), Month: w.Key(), PollMessageID: id}
+}
+
+// upcomingEvents scrapes local events and keeps those inside [from, to].
+// Any failure just means no list; the poll must still go out.
+func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
+	if deps.Events == nil {
+		return nil
+	}
+	city := deps.City
+	if city == "" {
+		city = "Winnipeg"
+	}
+	all, err := deps.Events.ScrapeEvents(city, "tech", to.Sub(from)+24*time.Hour)
+	if err != nil {
+		log.Printf("meetup: event scrape failed, AI pick gets no event list: %v", err)
+		return nil
+	}
+	var out []models.Event
+	for _, e := range all {
+		if !e.StartTime.Before(from) && e.StartTime.Before(to.AddDate(0, 0, 1)) {
+			out = append(out, e)
+			if len(out) == maxIdeaEvents {
+				break
+			}
+		}
+	}
+	log.Printf("meetup: %d of %d scraped events fall in the idea window", len(out), len(all))
+	return out
 }
 
 // resumeDeadline is the last instant a stopped-but-unposted summary for

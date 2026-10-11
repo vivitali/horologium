@@ -19,6 +19,7 @@ import (
 	"event_calendar/internal/config"
 	"event_calendar/internal/meetup"
 	"event_calendar/internal/ssmparam"
+	"event_calendar/pkg/scraping"
 	"event_calendar/pkg/telegram"
 )
 
@@ -66,6 +67,8 @@ func handle(ctx context.Context, evt Event) (res meetup.Result, err error) {
 		Bot:      telegram.NewService(cfg.MeetupBotToken),
 		Store:    store,
 		Ideas:    meetup.NewClaudeIdeas(cfg.AnthropicAPIKey),
+		Events:   scraping.NewScrapingServiceFactory().CreateDefaultService(),
+		City:     cfg.City,
 		BotToken: cfg.MeetupBotToken,
 		ChatID:   cfg.MeetupChatID,
 		TestMode: cfg.TestMode,
