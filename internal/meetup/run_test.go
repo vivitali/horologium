@@ -425,3 +425,38 @@ func TestRun_EventScrapeFailureStillSendsPoll(t *testing.T) {
 		t.Errorf("res=%+v", res)
 	}
 }
+
+func TestRun_TickBeforeStoredMonthNeverResumes(t *testing.T) {
+	// A smoke test dated in the past must not touch a stuck summary.
+	b, s := &fakeBot{}, &memStore{st: stoppedState()}
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 1, 2))
+	if !res.Success || res.Step != "none" || len(b.calls) != 0 || s.puts != 0 || s.st.Phase != PhaseStopped {
+		t.Errorf("res=%+v calls=%v puts=%d state=%+v", res, b.calls, s.puts, s.st)
+	}
+}
+
+func TestUpcomingEvents_SortedDedupedCapped(t *testing.T) {
+	var evs []models.Event
+	for i := 20; i > 0; i-- { // reverse order, with a duplicate URL
+		evs = append(evs, models.Event{Name: "E", URL: "https://e/" + string(rune('a'+i)), StartTime: d(2026, 10, 21).AddDate(0, 0, i%15)})
+	}
+	evs = append(evs, models.Event{Name: "Dup", URL: "https://e/b", StartTime: d(2026, 10, 22)})
+	dd := deps(&fakeBot{}, &memStore{}, &fakeIdeas{})
+	dd.Events = &fakeEvents{events: evs}
+	got := upcomingEvents(dd, d(2026, 10, 20), d(2026, 11, 10))
+	if len(got) != 15 {
+		t.Fatalf("len = %d", len(got))
+	}
+	for i := 1; i < len(got); i++ {
+		if got[i].StartTime.Before(got[i-1].StartTime) {
+			t.Errorf("not sorted at %d", i)
+		}
+	}
+	seen := map[string]int{}
+	for _, e := range got {
+		seen[e.URL]++
+	}
+	if seen["https://e/b"] > 1 {
+		t.Error("duplicate URL kept")
+	}
+}

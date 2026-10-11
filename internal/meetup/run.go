@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"event_calendar/internal/models"
@@ -79,6 +80,12 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 		return fail("none", "state read: %v", err)
 	}
 	if stored.Phase == PhaseStopped {
+		if today.Before(monthStart(stored.Month, deps.Loc)) {
+			// A tick dated before the stored month (e.g. a smoke test on a
+			// past date) is never a legitimate resume; do nothing to the state.
+			log.Printf("meetup: tick is dated before the unfinished %s summary; ignoring", stored.Month)
+			return Result{Success: true, Step: StepNone.String(), Month: w.Key()}
+		}
 		if today.Before(resumeDeadline(stored.Month, deps.Loc)) {
 			// A previous tick closed the poll but never posted the summary.
 			// Finish that month first, even if the calendar has rolled over;
@@ -166,17 +173,36 @@ func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
 		log.Printf("meetup: event scrape failed, AI pick gets no event list: %v", err)
 		return nil
 	}
+	// Scrapers return sources in map order; sort by time and dedupe so the
+	// cap keeps the soonest events rather than an arbitrary subset.
+	sort.Slice(all, func(i, j int) bool { return all[i].StartTime.Before(all[j].StartTime) })
+	seen := map[string]bool{}
 	var out []models.Event
 	for _, e := range all {
-		if !e.StartTime.Before(from) && e.StartTime.Before(to.AddDate(0, 0, 1)) {
-			out = append(out, e)
-			if len(out) == maxIdeaEvents {
-				break
-			}
+		key := e.URL
+		if key == "" {
+			key = e.Name + "|" + e.StartTime.Format(time.RFC3339)
+		}
+		if seen[key] || e.StartTime.Before(from) || !e.StartTime.Before(to.AddDate(0, 0, 1)) {
+			continue
+		}
+		seen[key] = true
+		out = append(out, e)
+		if len(out) == maxIdeaEvents {
+			break
 		}
 	}
 	log.Printf("meetup: %d of %d scraped events fall in the idea window", len(out), len(all))
 	return out
+}
+
+// monthStart is midnight on the first day of month key ("2006-01").
+func monthStart(key string, loc *time.Location) time.Time {
+	t, err := time.ParseInLocation("2006-01", key, loc)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // resumeDeadline is the last instant a stopped-but-unposted summary for

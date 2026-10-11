@@ -122,17 +122,21 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	user.WriteString("Suggest one idea.")
 
 	model := c.latestModel(ctx)
-	resp, err := c.client.Messages.New(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model: model,
-		// Newer Haiku models think before answering; leave room for it and
-		// keep effort low so a one-liner doesn't burn tokens.
-		MaxTokens:    2000,
-		OutputConfig: anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow},
-		System:       []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
+		// Newer Haiku models think before answering; leave room for it.
+		MaxTokens: 2000,
+		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
 		Messages: []anthropic.MessageParam{
 			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
 		},
-	})
+	}
+	if model != IdeaModel {
+		// Keep effort low so a one-liner doesn't burn thinking tokens.
+		// claude-haiku-4-5 rejects the parameter (verified 2026-10-11).
+		params.OutputConfig = anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow}
+	}
+	resp, err := c.client.Messages.New(ctx, params)
 	if err != nil {
 		return Idea{}, fmt.Errorf("anthropic: %w", err)
 	}

@@ -54,7 +54,7 @@ inbound path entirely.
 | Schedule | Daily EventBridge tick at 14:00 UTC; code decides. Poll on S-11 (Monday). Summary on S-3 (Wednesday). |
 | Winner | Most votes excluding "без мене". Tie → earliest option. Fewer than **4** votes → skip month. |
 | Summary | Posted as a message; pinned when there is a winner. |
-| AI idea | `claude-haiku-4-5`. Inputs: Winnipeg, the three dates, month/season, past ideas. Output: `<slot> — <activity>`, Ukrainian, short. Must not mention season or weather. On error the poll ships without it. |
+| AI idea | Newest `claude-haiku-*` from the Models API (fallback `claude-haiku-4-5`). Inputs: Winnipeg, the three dates, month/season, past ideas. Output: `<slot> — <activity>`, Ukrainian, short. Must not mention season or weather. On error the poll ships without it. |
 | Chat | Same group as the digest; bot is admin with pin rights. Pin failure is logged, never fatal. |
 | Layout | `cmd/meetup` + `internal/meetup`; reuse `pkg/telegram`, `internal/config`. |
 
@@ -180,8 +180,8 @@ Sent as MarkdownV2 (escaped). Pinned whenever there is a winner (either kind).
 - Output has two parts: the option line, then a short details blurb (venue,
   how to get there, cost / what to bring; ≤ 350 chars). The blurb is stored
   in state and shown in the summary only when the 🤖 option wins.
-- Parsing: first non-empty line, trimmed, hard-capped to 96 characters so
-  `🤖 ` + text fits Telegram's 100-char option limit. Empty → treated as
+- Parsing: first non-empty line, trimmed, hard-capped to 88 characters so
+  `🤖 AI pick: ` + text fits Telegram's 100-unit option limit. Empty → treated as
   failure.
 - Any error → logged, poll ships with 4 options.
 

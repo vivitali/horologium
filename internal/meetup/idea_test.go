@@ -146,3 +146,30 @@ func TestParseIdea_NoDetails(t *testing.T) {
 		t.Errorf("got %+v", got)
 	}
 }
+
+func TestClaudeIdeas_NoEffortOnFallbackModel(t *testing.T) {
+	// Models list fails -> pinned fallback, which rejects output_config.effort.
+	var lastReq map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/v1/models" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		b, _ := io.ReadAll(r.Body)
+		_ = json.Unmarshal(b, &lastReq)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"id": "m", "type": "message", "role": "assistant", "model": IdeaModel,
+			"content": []map[string]any{{"type": "text", "text": "Sat Jan 30 ~2pm — pool"}}, "stop_reason": "end_turn",
+			"usage": map[string]int{"input_tokens": 1, "output_tokens": 1},
+		})
+	}))
+	t.Cleanup(srv.Close)
+	g := NewClaudeIdeas("k", option.WithBaseURL(srv.URL), option.WithMaxRetries(0))
+	if _, err := g.Generate(context.Background(), IdeaInput{Weekend: LastWeekend(2027, time.January, wpg)}); err != nil {
+		t.Fatal(err)
+	}
+	if lastReq["model"] != IdeaModel || lastReq["output_config"] != nil {
+		t.Errorf("fallback request must pin the model and omit output_config: model=%v output_config=%v", lastReq["model"], lastReq["output_config"])
+	}
+}

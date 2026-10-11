@@ -24,7 +24,7 @@ Lambdas driven by EventBridge. No inbound HTTP anywhere.
 
 - Job logic lives in `internal/` behind small interfaces (`jobs`, `meetup`); `cmd/` only wires real clients. Tests use fakes and `httptest`, never the network.
 - Persistent state is one SSM parameter per concern (`internal/ssmparam`). No databases.
-- Telegram copy is Ukrainian; MarkdownV2 via `telegram.EscapeMarkdownV2`.
+- Telegram copy: digest and meetup poll in English, meetup summary in Ukrainian; MarkdownV2 via `telegram.EscapeMarkdownV2`.
 - Anthropic calls go through `github.com/anthropics/anthropic-sdk-go`; the idea option uses the newest `claude-haiku-*` from the Models API, falling back to `claude-haiku-4-5`.
 - Dates: `America/Winnipeg`; binaries import `time/tzdata`.
 - Specs in `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`. Update `CHANGELOG.md` under `[Unreleased]`.
