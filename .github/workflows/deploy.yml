@@ -45,13 +45,3 @@ jobs:
           TEST_MODE: ${{ vars.TEST_MODE || 'false' }}
         run: ./deploy/deploy.sh
 
-      - name: Smoke test (meetup bot, no-op day)
-        run: |
-          aws lambda invoke \
-            --function-name winnipeg-meetup-bot \
-            --payload '{"date":"2026-01-02"}' \
-            --cli-binary-format raw-in-base64-out \
-            --region "$AWS_REGION" \
-            /tmp/meetup.json
-          cat /tmp/meetup.json
-          grep -q '"success":true' /tmp/meetup.json

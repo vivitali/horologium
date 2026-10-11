@@ -226,9 +226,8 @@ In the repo on github.com: **Settings → Secrets and variables → Actions**.
 
 - **Manual**: GitHub repo → **Actions** → **Deploy Lambdas** → **Run workflow** (on `main`).
 
-The workflow ends with a smoke-test invocation of the meetup bot on a past
-date (guaranteed no-op) and prints the JSON result. It does not invoke the
-events digest, so a deploy never posts to the group.
+The workflow only uploads code and updates the EventBridge rules; it never
+invokes a Lambda, so a deploy never posts to the group.
 
 ## Architecture
 
