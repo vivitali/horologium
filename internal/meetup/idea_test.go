@@ -186,4 +186,7 @@ func noEffortCase(t *testing.T, listed string) {
 	if listed == "" && lastReq["model"] != IdeaModel {
 		t.Errorf("fallback must pin %s, got %v", IdeaModel, lastReq["model"])
 	}
+	if listed != "" && lastReq["model"] != listed {
+		t.Errorf("listed model must be used as-is: want %s, got %v", listed, lastReq["model"])
+	}
 }
