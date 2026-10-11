@@ -1,62 +1,62 @@
 package config
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestLoad_DefaultsAndFallbacks(t *testing.T) {
+func TestLoad_Defaults(t *testing.T) {
 	t.Setenv("TELEGRAM_BOT_TOKEN", "main-token")
 	t.Setenv("TELEGRAM_CHAT_ID", "main-chat")
-	// Poll envs unset — should fall back.
+	for _, k := range []string{"CITY", "CATEGORIES", "PERIOD_DAYS", "TEST_MODE",
+		"TELEGRAM_MEETUP_BOT_TOKEN", "TELEGRAM_MEETUP_CHAT_ID", "ANTHROPIC_API_KEY", "MEETUP_SSM_PARAM", "ANNUAL_SSM_PARAM"} {
+		t.Setenv(k, "")
+	}
 	cfg := Load()
 	if cfg.BotToken != "main-token" || cfg.ChatID != "main-chat" {
-		t.Fatalf("main creds wrong: %+v", cfg)
+		t.Errorf("main creds: %+v", cfg)
 	}
-	if cfg.PollBotToken != "main-token" || cfg.PollChatID != "main-chat" {
-		t.Errorf("poll did not fall back to main: %+v", cfg)
-	}
-	if cfg.City != "Winnipeg" || cfg.Categories != "tech" || cfg.PeriodDays != 30 {
-		t.Errorf("defaults wrong: %+v", cfg)
-	}
-	if cfg.TestMode {
-		t.Errorf("TestMode should default to false")
+	if cfg.City != "Winnipeg" || cfg.Categories != "tech" || cfg.PeriodDays != 30 || cfg.TestMode {
+		t.Errorf("defaults: %+v", cfg)
 	}
 	if cfg.AnnualSSMParam != "/winnipeg-tech-events/annual-events" {
-		t.Errorf("AnnualSSMParam default = %q", cfg.AnnualSSMParam)
+		t.Errorf("annual param: %q", cfg.AnnualSSMParam)
+	}
+	if cfg.MeetupSSMParam != "/winnipeg-tech-events/meetup-state" {
+		t.Errorf("meetup param: %q", cfg.MeetupSSMParam)
+	}
+	if cfg.MeetupBotToken != "" || cfg.MeetupChatID != "" || cfg.AnthropicAPIKey != "" {
+		t.Errorf("meetup creds should be empty by default: %+v", cfg)
 	}
 }
 
-func TestLoad_AnnualSSMParamOverride(t *testing.T) {
-	t.Setenv("ANNUAL_SSM_PARAM", "/custom/path")
-	cfg := Load()
-	if cfg.AnnualSSMParam != "/custom/path" {
-		t.Errorf("AnnualSSMParam = %q, want /custom/path", cfg.AnnualSSMParam)
-	}
-}
-
-func TestLoad_OverridesAndExplicitPollCreds(t *testing.T) {
-	t.Setenv("TELEGRAM_BOT_TOKEN", "main")
-	t.Setenv("TELEGRAM_CHAT_ID", "mainchat")
-	t.Setenv("TELEGRAM_POLL_BOT_TOKEN", "poll")
-	t.Setenv("TELEGRAM_POLL_CHAT_ID", "pollchat")
-	t.Setenv("CITY", "Toronto")
-	t.Setenv("CATEGORIES", "ai")
+func TestLoad_Overrides(t *testing.T) {
+	t.Setenv("TELEGRAM_BOT_TOKEN", "main-token")
+	t.Setenv("TELEGRAM_CHAT_ID", "main-chat")
+	t.Setenv("TELEGRAM_MEETUP_BOT_TOKEN", "meet-token")
+	t.Setenv("TELEGRAM_MEETUP_CHAT_ID", "meet-chat")
+	t.Setenv("ANTHROPIC_API_KEY", "sk-ant")
+	t.Setenv("MEETUP_SSM_PARAM", "/custom/meetup")
+	t.Setenv("CITY", "Brandon")
+	t.Setenv("CATEGORIES", "business")
 	t.Setenv("PERIOD_DAYS", "14")
 	t.Setenv("TEST_MODE", "true")
-
 	cfg := Load()
-	if cfg.PollBotToken != "poll" || cfg.PollChatID != "pollchat" {
-		t.Errorf("explicit poll creds not honored: %+v", cfg)
+	if cfg.MeetupBotToken != "meet-token" || cfg.MeetupChatID != "meet-chat" || cfg.AnthropicAPIKey != "sk-ant" {
+		t.Errorf("meetup creds: %+v", cfg)
 	}
-	if cfg.City != "Toronto" || cfg.Categories != "ai" || cfg.PeriodDays != 14 || !cfg.TestMode {
-		t.Errorf("overrides not applied: %+v", cfg)
+	if cfg.MeetupSSMParam != "/custom/meetup" {
+		t.Errorf("meetup param: %q", cfg.MeetupSSMParam)
+	}
+	if cfg.City != "Brandon" || cfg.Categories != "business" || cfg.PeriodDays != 14 || !cfg.TestMode {
+		t.Errorf("overrides: %+v", cfg)
 	}
 }
 
-func TestLoad_BadPeriodDays(t *testing.T) {
-	t.Setenv("PERIOD_DAYS", "not-a-number")
-	cfg := Load()
-	if cfg.PeriodDays != 30 {
-		t.Errorf("expected fallback to 30 on bad PERIOD_DAYS, got %d", cfg.PeriodDays)
+func TestLoad_InvalidPeriodDaysFallsBack(t *testing.T) {
+	t.Setenv("PERIOD_DAYS", "abc")
+	if got := Load().PeriodDays; got != 30 {
+		t.Errorf("PeriodDays = %d, want 30", got)
+	}
+	t.Setenv("PERIOD_DAYS", "-5")
+	if got := Load().PeriodDays; got != 30 {
+		t.Errorf("PeriodDays = %d, want 30", got)
 	}
 }

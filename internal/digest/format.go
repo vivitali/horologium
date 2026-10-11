@@ -9,6 +9,7 @@ import (
 	"event_calendar/internal/annual"
 	"event_calendar/internal/models"
 	"event_calendar/internal/timeutil"
+	"event_calendar/pkg/telegram"
 )
 
 const telegramMaxLen = 4096
@@ -36,7 +37,7 @@ func FormatEventsMessage(events []models.Event, annualEvts []annual.AnnualEvent,
 		return "📅 *No upcoming events found* for Winnipeg tech community\\."
 	}
 
-	header := fmt.Sprintf("🚀 *Winnipeg Tech Events* — %s · %d upcoming\n\n",
+	header := fmt.Sprintf("\\#events 🚀 *Winnipeg Tech Events* — %s · %d upcoming\n\n",
 		escMD(now.Format("Mon Jan 2")), len(events))
 
 	var trailer strings.Builder
@@ -226,30 +227,7 @@ func sourceName(source string) string {
 	}
 }
 
-// MarkdownV2 escape: outside code blocks and link URLs, these chars are reserved.
-var mdV2Escape = strings.NewReplacer(
-	`\`, `\\`,
-	`_`, `\_`,
-	`*`, `\*`,
-	`[`, `\[`,
-	`]`, `\]`,
-	`(`, `\(`,
-	`)`, `\)`,
-	`~`, `\~`,
-	"`", "\\`",
-	`>`, `\>`,
-	`#`, `\#`,
-	`+`, `\+`,
-	`-`, `\-`,
-	`=`, `\=`,
-	`|`, `\|`,
-	`{`, `\{`,
-	`}`, `\}`,
-	`.`, `\.`,
-	`!`, `\!`,
-)
-
-// MarkdownV2 code-block escape: only `\` and `` ` `` need escaping inside `...`.
+// MarkdownV2 code-block escape: only `\` and “ ` “ need escaping inside `...`.
 var mdV2Code = strings.NewReplacer(
 	`\`, `\\`,
 	"`", "\\`",
@@ -261,6 +239,6 @@ var mdV2URL = strings.NewReplacer(
 	`)`, `\)`,
 )
 
-func escMD(s string) string    { return mdV2Escape.Replace(s) }
+func escMD(s string) string    { return telegram.EscapeMarkdownV2(s) }
 func escMDURL(s string) string { return mdV2URL.Replace(s) }
 func codeMD(s string) string   { return "`" + mdV2Code.Replace(s) + "`" }

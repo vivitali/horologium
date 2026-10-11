@@ -1,8 +1,9 @@
-name: Deploy Lambda
+name: Deploy Lambdas
 
+# Manual only: merging to main never touches prod. Run it from
+# Actions -> Deploy Lambdas -> Run workflow (on main; the OIDC role is
+# locked to refs/heads/main).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -35,20 +36,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_POLL_BOT_TOKEN: ${{ secrets.TELEGRAM_POLL_BOT_TOKEN }}
-          TELEGRAM_POLL_CHAT_ID: ${{ secrets.TELEGRAM_POLL_CHAT_ID }}
+          TELEGRAM_MEETUP_BOT_TOKEN: ${{ secrets.TELEGRAM_MEETUP_BOT_TOKEN }}
+          TELEGRAM_MEETUP_CHAT_ID: ${{ secrets.TELEGRAM_MEETUP_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CITY: ${{ vars.CITY || 'Winnipeg' }}
           CATEGORIES: ${{ vars.CATEGORIES || 'tech' }}
           PERIOD_DAYS: ${{ vars.PERIOD_DAYS || '30' }}
           TEST_MODE: ${{ vars.TEST_MODE || 'false' }}
         run: ./deploy/deploy.sh
 
-      - name: Smoke test
-        run: |
-          aws lambda invoke \
-            --function-name winnipeg-tech-events \
-            --payload '{"action":"events"}' \
-            --cli-binary-format raw-in-base64-out \
-            --region "$AWS_REGION" \
-            /tmp/out.json
-          cat /tmp/out.json

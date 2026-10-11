@@ -1,0 +1,227 @@
+package meetup
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"strings"
+	"time"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
+
+	"event_calendar/internal/models"
+)
+
+// IdeaModel is the fallback model for the AI option when the live lookup
+// fails. Haiku is plenty for one short line and keeps the cost negligible.
+const IdeaModel = "claude-haiku-4-5"
+
+// ideaModelPrefix selects the family; latestModel picks the newest member.
+const ideaModelPrefix = "claude-haiku"
+
+// IdeaInput is everything the generator may consider.
+type IdeaInput struct {
+	Weekend Weekend
+	// From/To bound the dates the idea may use: the AI pick is not tied to
+	// the weekend and may point at an event worth visiting within ~3 weeks.
+	From, To  time.Time
+	PastIdeas []string
+	// Events are real upcoming local events inside the window (from the
+	// same scrapers the weekly digest uses). The model may pick one.
+	Events []models.Event
+	// Conditions is an optional free-text hint (e.g. a forecast). Empty today;
+	// reserved so a forecast can be added without changing the prompt shape.
+	Conditions string
+}
+
+// Idea is the AI poll option: the one-line option text (without the 🤖
+// prefix) and a short details blurb shown in the summary if it wins.
+type Idea struct {
+	Text    string
+	Details string
+}
+
+// MaxDetailsLen caps the details blurb so the summary stays short.
+const MaxDetailsLen = 350
+
+// IdeaGenerator produces the AI poll option.
+type IdeaGenerator interface {
+	Generate(ctx context.Context, in IdeaInput) (Idea, error)
+}
+
+// ClaudeIdeas generates ideas with the Anthropic API.
+type ClaudeIdeas struct {
+	apiKey string
+	client anthropic.Client
+}
+
+// NewClaudeIdeas builds a generator. Extra options (base URL, retries) are
+// for tests.
+func NewClaudeIdeas(apiKey string, opts ...option.RequestOption) *ClaudeIdeas {
+	all := append([]option.RequestOption{
+		option.WithAPIKey(apiKey),
+		option.WithRequestTimeout(20 * time.Second),
+	}, opts...)
+	return &ClaudeIdeas{apiKey: apiKey, client: anthropic.NewClient(all...)}
+}
+
+const ideaSystemPrompt = `You help a small tech community in Winnipeg, Manitoba, Canada pick an idea for a weekend meetup.
+
+Reply with exactly two parts, no quotes, no emoji:
+1. First line: the poll option, in English. Format: "<weekday> <Mon D> ~<time> — <specific activity and place>". Example: "Sat Oct 24 ~2pm — pool at a bar on Osborne". At most 80 characters. The date is mandatory.
+2. Then a blank line, then one short paragraph of details IN UKRAINIAN (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring. Keep venue and street names as they are.
+
+Rules for the option:
+- You may pick ANY date inside the given window, not only the meetup weekend.
+- If a list of real upcoming local events is given, pick one of them whenever any could work for a group to attend together (a tech meetup, talk, workshop, social, demo night, festival, market). Keep its real name, date, start time, and venue. Only if nothing on the list is suitable, suggest a regular activity, ideally on the meetup weekend.
+- Give an approximate start time, or a time range for a longer activity.
+- Weekdays are workdays. Two kinds of weekday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri Oct 30 1pm–5pm — co-working at the Millennium Library café"). Nothing else during work hours.
+- Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
+- Vary the format month to month: events, short hangouts, half-day activities, weekday co-working.
+- This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Good: board-game cafes, pool, bowling, trivia or quiz nights, curling, skating, a hike or river walk, BBQ or picnic, a beer or food festival, a market, a patio.
+- Avoid quiet or seated activities (museums, galleries, opera, theatre, cinema, lectures) unless it is an actual social event there, like a festival, party, or night market.
+- The place must be real and in or near Winnipeg.
+- Take the season and likely weather into account so the idea fits, but NEVER mention the season, month, or weather in the text.
+- Do not repeat anything from the list of past ideas.`
+
+// Generate asks Claude for one idea. An empty option line is an error so
+// the caller can drop the option.
+func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) {
+	if c.apiKey == "" {
+		return Idea{}, fmt.Errorf("ANTHROPIC_API_KEY not set")
+	}
+	w := in.Weekend
+	var user strings.Builder
+	fmt.Fprintf(&user, "Meetup weekend: Friday %s, Saturday %s, Sunday %s (%d).\n",
+		DateText(w.Fri), DateText(w.Sat), DateText(w.Sun), w.Sat.Year())
+	if !in.From.IsZero() && !in.To.IsZero() {
+		fmt.Fprintf(&user, "Allowed date window for your pick: %s to %s.\n", in.From.Format("Mon Jan 2"), in.To.Format("Mon Jan 2"))
+	}
+	fmt.Fprintf(&user, "Season: %s.\n", Season(w.Sat.Month()))
+	if in.Conditions != "" {
+		fmt.Fprintf(&user, "Conditions: %s\n", in.Conditions)
+	}
+	if len(in.Events) > 0 {
+		user.WriteString("Real upcoming local events in the window:\n")
+		loc := w.Sat.Location()
+		for _, e := range in.Events {
+			fmt.Fprintf(&user, "- %s %s — %s", e.StartTime.In(loc).Format("Mon Jan 2 3:04pm"), e.Name, e.Venue)
+			if e.URL != "" {
+				fmt.Fprintf(&user, " (%s)", e.URL)
+			}
+			user.WriteString("\n")
+		}
+	}
+	if len(in.PastIdeas) > 0 {
+		user.WriteString("Past ideas (do not repeat):\n")
+		for _, p := range in.PastIdeas {
+			fmt.Fprintf(&user, "- %s\n", p)
+		}
+	}
+	user.WriteString("Suggest one idea.")
+
+	model := c.latestModel(ctx)
+	params := anthropic.MessageNewParams{
+		Model: model,
+		// Newer Haiku models think before answering; leave room for it.
+		MaxTokens: 2000,
+		System:    []anthropic.TextBlockParam{{Text: ideaSystemPrompt}},
+		Messages: []anthropic.MessageParam{
+			anthropic.NewUserMessage(anthropic.NewTextBlock(user.String())),
+		},
+	}
+	if !strings.HasPrefix(model, IdeaModel) {
+		// Keep effort low so a one-liner doesn't burn thinking tokens.
+		// claude-haiku-4-5 (any dated id) rejects the parameter (verified 2026-10-11).
+		params.OutputConfig = anthropic.OutputConfigParam{Effort: anthropic.OutputConfigEffortLow}
+	}
+	resp, err := c.client.Messages.New(ctx, params)
+	if err != nil {
+		return Idea{}, fmt.Errorf("anthropic: %w", err)
+	}
+	var text strings.Builder
+	for _, block := range resp.Content {
+		if tb, ok := block.AsAny().(anthropic.TextBlock); ok {
+			text.WriteString(tb.Text)
+		}
+	}
+	idea := parseIdea(text.String())
+	if idea.Text == "" {
+		return Idea{}, fmt.Errorf("anthropic: empty idea (stop_reason=%s, blocks=%d, raw=%q)", resp.StopReason, len(resp.Content), truncateRunes(text.String(), 200))
+	}
+	return idea, nil
+}
+
+// parseIdea splits the reply: first non-empty line is the option, the rest
+// (joined, with an optional "Details:" label stripped) is the blurb.
+func parseIdea(raw string) Idea {
+	var idea Idea
+	var rest []string
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if idea.Text == "" {
+			idea.Text = cleanIdea(line)
+			continue
+		}
+		rest = append(rest, line)
+	}
+	details := strings.TrimSpace(strings.Join(rest, " "))
+	details = strings.TrimSpace(strings.TrimPrefix(details, "Details:"))
+	idea.Details = truncateRunes(details, MaxDetailsLen)
+	return idea
+}
+
+// latestModel returns the newest model whose id starts with ideaModelPrefix,
+// or IdeaModel if the Models API is unavailable. Runs once a month, so no
+// caching.
+func (c *ClaudeIdeas) latestModel(ctx context.Context) string {
+	page, err := c.client.Models.List(ctx, anthropic.ModelListParams{})
+	if err != nil {
+		log.Printf("meetup: models list failed, using %s: %v", IdeaModel, err)
+		return IdeaModel
+	}
+	best := ""
+	var bestAt time.Time
+	for _, m := range page.Data {
+		if strings.HasPrefix(m.ID, ideaModelPrefix) && (best == "" || m.CreatedAt.After(bestAt)) {
+			best, bestAt = m.ID, m.CreatedAt
+		}
+	}
+	if best == "" {
+		return IdeaModel
+	}
+	log.Printf("meetup: using %s", best)
+	return best
+}
+
+// Season returns the season for a month.
+func Season(m time.Month) string {
+	switch m {
+	case time.December, time.January, time.February:
+		return "winter"
+	case time.March, time.April, time.May:
+		return "spring"
+	case time.June, time.July, time.August:
+		return "summer"
+	default:
+		return "fall"
+	}
+}
+
+// cleanIdea keeps the first non-empty line, strips quotes and a stray
+// robot prefix, and caps the length for the Telegram option limit.
+func cleanIdea(raw string) string {
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		line = strings.Trim(line, `"'«»“”`)
+		line = strings.TrimSpace(strings.TrimPrefix(line, ideaPrefix))
+		if line != "" {
+			return truncateRunes(line, MaxIdeaLen)
+		}
+	}
+	return ""
+}

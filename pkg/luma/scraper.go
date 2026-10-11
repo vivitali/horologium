@@ -103,8 +103,8 @@ func unfoldICS(b []byte) []byte {
 }
 
 var (
-	lumaURLRE = regexp.MustCompile(`https://luma\.com/[A-Za-z0-9_-]+`)
-	icsDate   = "20060102T150405Z"
+	lumaURLRE    = regexp.MustCompile(`https://luma\.com/[A-Za-z0-9_-]+`)
+	icsDate      = "20060102T150405Z"
 	icsDateLocal = "20060102T150405"
 )
 

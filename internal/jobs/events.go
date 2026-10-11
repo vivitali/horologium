@@ -1,5 +1,5 @@
-// Package jobs contains the reusable scheduled-job logic for events digests
-// and monthly polls. Each job takes its dependencies as interfaces so callers
+// Package jobs contains the reusable scheduled-job logic for the events
+// digest and the annual-events scrape. Each job takes its dependencies as interfaces so callers
 // (Lambda, local CLI) can wire real or fake implementations.
 package jobs
 

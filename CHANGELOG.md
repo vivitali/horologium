@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Meetup bot** (`cmd/meetup`, Lambda `winnipeg-meetup-bot`): a dedicated Telegram bot that polls the group about the last weekend of each month (Fri evening / Sat and Sun noon or evening / an AI-generated idea from Claude Haiku / can't make it), reads the counts back with `stopPoll` three days before the weekend, and posts + pins the winner when it has at least 4 votes. State lives in SSM `/winnipeg-tech-events/meetup-state`; a daily EventBridge tick drives it. New env: `TELEGRAM_MEETUP_BOT_TOKEN`, `TELEGRAM_MEETUP_CHAT_ID`, `ANTHROPIC_API_KEY`, `MEETUP_SSM_PARAM`.
+- `scripts/check`, `scripts/test`, `scripts/build`, `scripts/ship` contract scripts and a repo `CLAUDE.md`.
+
+### Removed
+- The day-of-week poll on the 20th (`poll` action, `winnipeg-poll-monthly` rule, `TELEGRAM_POLL_*` env vars). Absorbed by the meetup bot; `deploy.sh` deletes the old rule.
+
 ### Changed
+- **Deploys are manual.** The deploy workflow no longer runs on push to `main` and does not invoke any Lambda, so merging and deploying never post to the group.
+- `internal/ssmparam` extracted from `internal/annual` so both Lambdas share one SSM adapter.
 - **Annual events footer is now scraped monthly** instead of read from a hardcoded slice. A new Lambda action `scrape_annual` runs on the 1st of each month via EventBridge, scrapes four Winnipeg annual-event sites (Prairie Dev Con, WomenHack, North Forge RampUp, MbTech Week), and persists the next-occurrence dates to SSM Parameter Store. The weekly digest reads the latest result from SSM at send time. Per-site scrape failures retain last-known-good data, so a single broken parser never empties the footer.
 
 ## [1.0.0] - 2025-01-13

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Deploy both Lambdas to AWS. Normally CI does this on push to main.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+exec ./deploy/deploy.sh "$@"

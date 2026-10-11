@@ -107,8 +107,8 @@ type ebEvent struct {
 type ebVenue struct {
 	Name    string `json:"name"`
 	Address struct {
-		City               string `json:"city"`
-		LocalizedAddress   string `json:"localized_address_display"`
+		City             string `json:"city"`
+		LocalizedAddress string `json:"localized_address_display"`
 	} `json:"address"`
 }
 

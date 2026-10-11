@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Production build: both Lambda zips, same flags as deploy/deploy.sh.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+for pkg in lambda meetup; do
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
+        go build -tags lambda.norpc -o bootstrap "./cmd/${pkg}"
+    zip -j "deploy/${pkg}.zip" bootstrap >/dev/null
+    rm bootstrap
+    echo "deploy/${pkg}.zip"
+done

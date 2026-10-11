@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"event_calendar/internal/ssmparam"
 )
 
 // ErrParameterNotFound is returned by ssmAPI.GetParameter when the parameter
 // does not exist. SSMStore.Get translates this to an empty slice.
-var ErrParameterNotFound = errors.New("parameter not found")
+var ErrParameterNotFound = ssmparam.ErrNotFound
 
 // Store persists the curated annual-events list between Lambda invocations.
 type Store interface {
@@ -17,12 +19,8 @@ type Store interface {
 	Put(ctx context.Context, events []AnnualEvent) error
 }
 
-// ssmAPI is the slice of the AWS SSM client we need. Lets tests substitute
-// a fake without pulling in the SDK.
-type ssmAPI interface {
-	GetParameter(ctx context.Context, name string) (string, error)
-	PutParameter(ctx context.Context, name, value string) error
-}
+// ssmAPI is the parameter-store abstraction shared with other stores.
+type ssmAPI = ssmparam.API
 
 // SSMStore is a Store backed by AWS SSM Parameter Store.
 type SSMStore struct {

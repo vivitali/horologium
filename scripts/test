@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Full test suite with race detector.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+go test ./... -race -count=1
