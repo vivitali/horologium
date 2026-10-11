@@ -18,6 +18,7 @@ Lambdas driven by EventBridge. No inbound HTTP anywhere.
 - `scripts/test`  — tests with `-race`
 - `scripts/build` — builds `deploy/lambda.zip` and `deploy/meetup.zip`
 - `scripts/ship`  — `deploy/deploy.sh` (CI runs it only via manual "Run workflow"; merging never deploys; don't run locally unless asked)
+- Dev stage: `STAGE=dev ./deploy/deploy.sh` deploys `-dev` copies of both Lambdas/rules/SSM params with tokens from `deploy/.env` (dev bot + test group).
 
 ## Conventions
 

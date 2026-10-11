@@ -24,8 +24,8 @@ SSM_PARAM="/winnipeg-tech-events/annual-events"
 MEETUP_SSM_PARAM="/winnipeg-tech-events/meetup-state"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-SSM_PARAM_ARN="arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter${SSM_PARAM}"
-MEETUP_SSM_PARAM_ARN="arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter${MEETUP_SSM_PARAM}"
+# One policy covers prod and every stage: /winnipeg-tech-events/*, /winnipeg-tech-events-dev/*, ...
+SSM_PARAMS_ARN="arn:aws:ssm:${REGION}:${ACCOUNT_ID}:parameter/winnipeg-tech-events*"
 
 echo "== Attaching SSM read/write policy to ${ROLE_NAME} =="
 aws iam put-role-policy \
@@ -36,7 +36,7 @@ aws iam put-role-policy \
         \"Statement\": [{
             \"Effect\": \"Allow\",
             \"Action\": [\"ssm:GetParameter\", \"ssm:PutParameter\"],
-            \"Resource\": [\"${SSM_PARAM_ARN}\", \"${MEETUP_SSM_PARAM_ARN}\"]
+            \"Resource\": \"${SSM_PARAMS_ARN}\"
         }]
     }" >/dev/null
 echo "  -> policy ssm-parameters attached (the older ssm-annual-events policy, if any, is left in place)"
@@ -57,6 +57,9 @@ ensure_param() {
 }
 ensure_param "$SSM_PARAM" '[]' "empty list"
 ensure_param "$MEETUP_SSM_PARAM" '{}' "empty state"
+# Dev stage parameters (harmless if you never deploy dev).
+ensure_param "/winnipeg-tech-events-dev/annual-events" '[]' "empty list, dev"
+ensure_param "/winnipeg-tech-events-dev/meetup-state" '{}' "empty state, dev"
 
 echo
 echo "== Bootstrap done =="

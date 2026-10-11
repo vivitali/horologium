@@ -8,6 +8,13 @@
 #   - AWS CLI v2 configured (e.g. `aws login` or `aws configure sso`)
 #   - Go 1.24+ installed
 #
+# Stages:
+#   ./deploy/deploy.sh             prod (CI runs this via manual dispatch)
+#   STAGE=dev ./deploy/deploy.sh   dev copy: every resource gets a "-dev"
+#                                  suffix (functions, rules, SSM params);
+#                                  tokens come from deploy/.env, so point
+#                                  them at a dev bot and a test group.
+#
 # Environment (read by the Lambdas; pass via shell or `deploy/.env`):
 #   TELEGRAM_BOT_TOKEN          events bot
 #   TELEGRAM_CHAT_ID            events bot
@@ -22,16 +29,22 @@
 #   MEETUP_SSM_PARAM=/winnipeg-tech-events/meetup-state  (default; set by this script)
 set -euo pipefail
 
-FUNCTION_NAME="winnipeg-tech-events"
-MEETUP_FUNCTION_NAME="winnipeg-meetup-bot"
+STAGE="${STAGE:-prod}"
+SUFFIX=""
+if [[ "$STAGE" != "prod" ]]; then
+    SUFFIX="-${STAGE}"
+fi
+
+FUNCTION_NAME="winnipeg-tech-events${SUFFIX}"
+MEETUP_FUNCTION_NAME="winnipeg-meetup-bot${SUFFIX}"
 REGION="${AWS_REGION:-us-east-1}"
-ROLE_NAME="winnipeg-tech-events-lambda-role"
-RULE_EVENTS="winnipeg-events-weekly"
-RULE_ANNUAL="winnipeg-annual-scrape-monthly"
-RULE_MEETUP="winnipeg-meetup-daily"
+ROLE_NAME="winnipeg-tech-events-lambda-role"   # shared by all stages
+RULE_EVENTS="winnipeg-events-weekly${SUFFIX}"
+RULE_ANNUAL="winnipeg-annual-scrape-monthly${SUFFIX}"
+RULE_MEETUP="winnipeg-meetup-daily${SUFFIX}"
 RULE_POLL_LEGACY="winnipeg-poll-monthly"
-SSM_PARAM="/winnipeg-tech-events/annual-events"
-MEETUP_SSM_PARAM="/winnipeg-tech-events/meetup-state"
+SSM_PARAM="/winnipeg-tech-events${SUFFIX}/annual-events"
+MEETUP_SSM_PARAM="/winnipeg-tech-events${SUFFIX}/meetup-state"
 RUNTIME="provided.al2023"
 HANDLER="bootstrap"
 TIMEOUT=300
@@ -48,6 +61,7 @@ if [[ -f deploy/.env ]]; then
     set +a
 fi
 
+echo "== Stage: ${STAGE} =="
 echo "== Building Go Lambdas =="
 build_zip() {
     local pkg="$1" zip="$2"
@@ -183,7 +197,9 @@ create_or_update_rule "$RULE_MEETUP" \
     "$MEETUP_FUNCTION_NAME"
 
 echo "== Removing legacy rule ${RULE_POLL_LEGACY} (if present) =="
-if aws events describe-rule --name "$RULE_POLL_LEGACY" --region "$REGION" >/dev/null 2>&1; then
+if [[ -n "$SUFFIX" ]]; then
+    echo "  -> skipped (non-prod stage)"
+elif aws events describe-rule --name "$RULE_POLL_LEGACY" --region "$REGION" >/dev/null 2>&1; then
     aws events remove-targets --rule "$RULE_POLL_LEGACY" --ids 1 --region "$REGION" >/dev/null || true
     aws events delete-rule --name "$RULE_POLL_LEGACY" --region "$REGION" >/dev/null
     aws lambda remove-permission --function-name "$FUNCTION_NAME" \
