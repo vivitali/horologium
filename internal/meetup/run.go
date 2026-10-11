@@ -94,7 +94,7 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 
 	switch step {
 	case StepSendPoll:
-		return sendPoll(ctx, deps, w, st)
+		return sendPoll(ctx, deps, today, w, st)
 	case StepSummarize:
 		return summarize(ctx, deps, st)
 	default:
@@ -102,10 +102,10 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 	}
 }
 
-func sendPoll(ctx context.Context, deps Deps, w Weekend, st State) Result {
+func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st State) Result {
 	var idea Idea
 	if deps.Ideas != nil {
-		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, PastIdeas: st.PastIdeas})
+		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: today, To: today.AddDate(0, 0, 21), PastIdeas: st.PastIdeas})
 		if err != nil {
 			log.Printf("meetup: idea generation failed, sending poll without AI option: %v", err)
 		} else {

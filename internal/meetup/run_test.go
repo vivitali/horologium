@@ -121,6 +121,9 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	if len(i.in.PastIdeas) != 1 || i.in.PastIdeas[0] != "old" {
 		t.Errorf("generator should see previous ideas: %+v", i.in)
 	}
+	if !i.in.From.Equal(d(2026, 10, 20)) || !i.in.To.Equal(d(2026, 11, 10)) {
+		t.Errorf("idea window should be today..today+21d: %v..%v", i.in.From, i.in.To)
+	}
 }
 
 func TestRun_SendsPollWithoutIdeaOnGeneratorError(t *testing.T) {

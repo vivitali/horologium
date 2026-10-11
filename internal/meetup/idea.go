@@ -20,7 +20,10 @@ const ideaModelPrefix = "claude-haiku"
 
 // IdeaInput is everything the generator may consider.
 type IdeaInput struct {
-	Weekend   Weekend
+	Weekend Weekend
+	// From/To bound the dates the idea may use: the AI pick is not tied to
+	// the weekend and may point at an event worth visiting within ~3 weeks.
+	From, To  time.Time
 	PastIdeas []string
 	// Conditions is an optional free-text hint (e.g. a forecast). Empty today;
 	// reserved so a forecast can be added without changing the prompt shape.
@@ -61,14 +64,15 @@ func NewClaudeIdeas(apiKey string, opts ...option.RequestOption) *ClaudeIdeas {
 const ideaSystemPrompt = `You help a small tech community in Winnipeg, Manitoba, Canada pick an idea for a weekend meetup.
 
 Reply with exactly two parts, no quotes, no emoji:
-1. First line: the poll option, in English. Format: "<day and approximate time> — <specific activity and place>". Example: "Sat ~2pm — pool at a bar on Osborne". At most 70 characters.
+1. First line: the poll option, in English. Format: "<weekday> <Mon D> ~<time> — <specific activity and place>". Example: "Sat Oct 24 ~2pm — pool at a bar on Osborne". At most 80 characters. The date is mandatory.
 2. Then a blank line, then one short paragraph of details IN UKRAINIAN (at most 300 characters): the venue and area, how to get there (parking or transit), and cost or what to bring. Keep venue and street names as they are.
 
 Rules for the option:
-- Pick one of the three offered days and give an approximate start time, or a time range for a longer activity.
-- Friday is a workday. Two kinds of Friday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri 1pm–5pm — co-working at the Millennium Library café"). Nothing else during Friday work hours.
+- You may pick ANY date inside the given window, not only the meetup weekend. Prefer a real event worth visiting in that window if you know of one (festival, market, tech meetup, game, show, seasonal event); otherwise suggest a regular activity, ideally on the meetup weekend.
+- Give an approximate start time, or a time range for a longer activity.
+- Weekdays are workdays. Two kinds of weekday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri Oct 30 1pm–5pm — co-working at the Millennium Library café"). Nothing else during work hours.
 - Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
-- Vary the format month to month: short hangouts, half-day activities, Friday co-working.
+- Vary the format month to month: events, short hangouts, half-day activities, weekday co-working.
 - This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Good: board-game cafes, pool, bowling, trivia or quiz nights, curling, skating, a hike or river walk, BBQ or picnic, a beer or food festival, a market, a patio.
 - Avoid quiet or seated activities (museums, galleries, opera, theatre, cinema, lectures) unless it is an actual social event there, like a festival, party, or night market.
 - The place must be real and in or near Winnipeg.
@@ -83,8 +87,11 @@ func (c *ClaudeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) 
 	}
 	w := in.Weekend
 	var user strings.Builder
-	fmt.Fprintf(&user, "Meetup dates: Friday %s, Saturday %s, Sunday %s (%d).\n",
+	fmt.Fprintf(&user, "Meetup weekend: Friday %s, Saturday %s, Sunday %s (%d).\n",
 		DateText(w.Fri), DateText(w.Sat), DateText(w.Sun), w.Sat.Year())
+	if !in.From.IsZero() && !in.To.IsZero() {
+		fmt.Fprintf(&user, "Allowed date window for your pick: %s to %s.\n", in.From.Format("Mon Jan 2"), in.To.Format("Mon Jan 2"))
+	}
 	fmt.Fprintf(&user, "Season: %s.\n", Season(w.Sat.Month()))
 	if in.Conditions != "" {
 		fmt.Fprintf(&user, "Conditions: %s\n", in.Conditions)
