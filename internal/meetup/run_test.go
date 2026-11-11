@@ -94,7 +94,7 @@ func (f *fakeEvents) ScrapeEvents(city, category string, period time.Duration) (
 }
 
 func deps(b *fakeBot, s *memStore, i *fakeIdeas) Deps {
-	return Deps{Bot: b, Store: s, Ideas: i, BotToken: "tok", ChatID: "-100", Loc: wpg, Sleep: func(time.Duration) {}}
+	return Deps{Bot: b, Store: s, Ideas: i, BotToken: "tok", ChatID: "-100", Loc: wpg, Sleep: func(time.Duration) {}, EventMonth: func() bool { return false }}
 }
 
 // 14:00 UTC on the given Winnipeg date.

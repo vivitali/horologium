@@ -21,8 +21,9 @@ type EventSource interface {
 // maxIdeaEvents caps the list handed to the model.
 const maxIdeaEvents = 15
 
-// eventOdds: one month in eventOdds the AI pick is a real local event;
-// otherwise the model suggests an activity of its own. The roll happens in
+// eventOdds: one month in eventOdds the AI pick is offered the real event
+// list; otherwise the model suggests an activity of its own. 4 puts events
+// on par with the kinds of ideas the group named (billiards, skiing, bar). The roll happens in
 // code because a model handed an event list picks from it almost always.
 // ponytail: fixed share; make it configurable if the group wants more or fewer events.
 const eventOdds = 4
