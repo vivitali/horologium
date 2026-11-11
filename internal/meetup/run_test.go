@@ -412,6 +412,7 @@ func TestRun_PassesWindowedEventsToIdeaGenerator(t *testing.T) {
 	i := &fakeIdeas{idea: "x"}
 	dd := deps(&fakeBot{}, &memStore{}, i)
 	dd.Events = ev
+	dd.EventMonth = func() bool { return true }
 	if res := Run(context.Background(), dd, tick(2026, 10, 24)); !res.Success {
 		t.Fatalf("res=%+v", res)
 	}
@@ -427,8 +428,26 @@ func TestRun_PassesWindowedEventsToIdeaGenerator(t *testing.T) {
 func TestRun_EventScrapeFailureStillSendsPoll(t *testing.T) {
 	dd := deps(&fakeBot{}, &memStore{}, &fakeIdeas{idea: "x"})
 	dd.Events = &fakeEvents{err: errors.New("down")}
+	dd.EventMonth = func() bool { return true }
 	if res := Run(context.Background(), dd, tick(2026, 10, 24)); !res.Success || res.Step != "send_poll" {
 		t.Errorf("res=%+v", res)
+	}
+}
+
+func TestRun_ActivityMonthSkipsEventList(t *testing.T) {
+	ev := &fakeEvents{events: []models.Event{{Name: "Tech Social", StartTime: d(2026, 10, 29).Add(18 * time.Hour)}}}
+	b, i := &fakeBot{}, &fakeIdeas{idea: "Fri Oct 30 ~7pm — billiards"}
+	dd := deps(b, &memStore{}, i)
+	dd.Events = ev
+	dd.EventMonth = func() bool { return false }
+	if res := Run(context.Background(), dd, tick(2026, 10, 24)); !res.Success || res.Step != "send_poll" {
+		t.Fatalf("res=%+v", res)
+	}
+	if ev.period != 0 || len(i.in.Events) != 0 {
+		t.Errorf("activity month must not scrape or pass events: period=%v events=%+v", ev.period, i.in.Events)
+	}
+	if b.pollOpts[5] != "🤖 AI pick: Fri Oct 30 ~7pm — billiards" {
+		t.Errorf("options = %q", b.pollOpts)
 	}
 }
 

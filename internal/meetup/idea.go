@@ -29,7 +29,8 @@ type IdeaInput struct {
 	From, To  time.Time
 	PastIdeas []string
 	// Events are real upcoming local events inside the window (from the
-	// same scrapers the weekly digest uses). The model may pick one.
+	// same scrapers the weekly digest uses). Run passes them only in event
+	// months; the model then picks one.
 	Events []models.Event
 	// Conditions is an optional free-text hint (e.g. a forecast). Empty today;
 	// reserved so a forecast can be added without changing the prompt shape.
@@ -75,12 +76,13 @@ Reply with exactly two parts, no quotes, no emoji:
 
 Rules for the option:
 - You may pick ANY date inside the given window, not only the meetup weekend.
-- If a list of real upcoming local events is given, pick one of them whenever any could work for a group to attend together (a tech meetup, talk, workshop, social, demo night, festival, market). Keep its real name, date, start time, and venue. Only if nothing on the list is suitable, suggest a regular activity, ideally on the meetup weekend.
+- If a list of real upcoming local events is given, pick one of them for the group to attend together (a tech meetup, talk, workshop, social, demo night, festival, market); a listed tech meetup or talk is fine even though it is seated. Keep its real name, date, start time, and venue. Only if every listed event is clearly unworkable for a group, come up with an activity of your own.
+- If no list is given, come up with an activity of your own, ideally on the meetup weekend.
 - Give an approximate start time, or a time range for a longer activity.
 - Weekdays are workdays. Two kinds of weekday idea fit: something after work (6pm or later), or a half-day of co-working together from a café or library during the day (e.g. "Fri Oct 30 1pm–5pm — co-working at the Millennium Library café"). Nothing else during work hours.
 - Saturday and Sunday are open: morning, afternoon, evening, or a longer block.
 - Vary the format month to month: events, short hangouts, half-day activities, weekday co-working.
-- This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Good: board-game cafes, pool, bowling, trivia or quiz nights, curling, skating, a hike or river walk, BBQ or picnic, a beer or food festival, a market, a patio.
+- This is a social gathering: pick something where a group of 5-10 people can hang out and talk. Directions only, not a menu: billiards, bowling, skiing or tubing, curling, skating, board-game cafes, trivia nights, Friday beers at a bar, a hike or river walk, BBQ or picnic, a food or beer festival, a market, a patio. Think wider than this list.
 - Avoid quiet or seated activities (museums, galleries, opera, theatre, cinema, lectures) unless it is an actual social event there, like a festival, party, or night market.
 - The place must be real and in or near Winnipeg.
 - Take the season and likely weather into account so the idea fits, but NEVER mention the season, month, or weather in the text.
