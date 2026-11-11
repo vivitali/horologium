@@ -188,7 +188,7 @@ create_or_update_rule "$RULE_ANNUAL" \
     "$FUNCTION_NAME"
 
 # Daily 14:00 UTC (08:00/09:00 Winnipeg). The meetup bot decides in code
-# whether today is a poll day (last Saturday - 11), a summary day (- 3),
+# whether today is a poll day (last Saturday - 7), a summary day (- 3),
 # or nothing.
 create_or_update_rule "$RULE_MEETUP" \
     "cron(0 14 * * ? *)" \
@@ -216,7 +216,7 @@ echo "Manual invoke:"
 echo "  aws lambda invoke --function-name ${FUNCTION_NAME} \\"
 echo "      --payload '{\"action\":\"events\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
 echo "  aws lambda invoke --function-name ${MEETUP_FUNCTION_NAME} \\"
-echo "      --payload '{\"date\":\"2026-10-20\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
+echo "      --payload '{\"date\":\"2026-10-24\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
 echo
 echo "Logs:"
 echo "  aws logs tail /aws/lambda/${FUNCTION_NAME} --follow --region ${REGION}"

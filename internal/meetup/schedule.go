@@ -23,8 +23,9 @@ func LastWeekend(year int, month time.Month, loc *time.Location) Weekend {
 // Key identifies the month this weekend belongs to ("2006-01" of Saturday).
 func (w Weekend) Key() string { return w.Sat.Format("2006-01") }
 
-// PollDay is when the poll opens: 11 days before Saturday.
-func (w Weekend) PollDay() time.Time { return w.Sat.AddDate(0, 0, -11) }
+// PollDay is when the poll opens: the Saturday a week before. Any earlier
+// and people can't tell whether "Saturday" means this one or the next.
+func (w Weekend) PollDay() time.Time { return w.Sat.AddDate(0, 0, -7) }
 
 // SummaryDay is when the poll closes and the summary posts: 3 days before Saturday.
 func (w Weekend) SummaryDay() time.Time { return w.Sat.AddDate(0, 0, -3) }

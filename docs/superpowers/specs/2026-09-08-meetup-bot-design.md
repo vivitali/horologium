@@ -37,7 +37,7 @@ inbound path entirely.
 
 - Receiving `poll_answer` updates, voter names, or @mentions (would need a
   Function URL + DynamoDB; the `Store` boundary leaves room for it later).
-- Live weather forecasts (11 days out is noise). The idea generator accepts an
+- Live weather forecasts (a week out is noise). The idea generator accepts an
   optional `Conditions` hint, empty for now.
 - A `go.work` multi-module split. One `go.mod`, multiple `cmd/` binaries.
 - Any change to the weekly digest or annual-events flows beyond removing the
@@ -51,7 +51,7 @@ inbound path entirely.
 | Existing day-of-week poll | Absorbed and removed. |
 | Number of polls | One, multi-select, non-anonymous, Ukrainian. |
 | Anchor | S = last Saturday of the month. Fri = S-1, Sun = S+1. |
-| Schedule | Daily EventBridge tick at 14:00 UTC; code decides. Poll on S-11 (Monday). Summary on S-3 (Wednesday). |
+| Schedule | Daily EventBridge tick at 14:00 UTC; code decides. Poll on S-7 (Saturday). Summary on S-3 (Wednesday). |
 | Winner | Most votes excluding "без мене". Tie → earliest option. Fewer than **4** votes → skip month. |
 | Summary | Posted as a message; pinned when there is a winner. |
 | AI idea | Newest `claude-haiku-*` from the Models API (fallback `claude-haiku-4-5`). Inputs: Winnipeg, the three dates, month/season, past ideas. Output: `<slot> — <activity>`, Ukrainian, short. Must not mention season or weather. On error the poll ships without it. |
@@ -83,7 +83,7 @@ W      = last weekend of today's month  (Sat = last Saturday; Fri = Sat-1; Sun =
 key    = W.Sat formatted "2006-01"
 state  = SSM read; if state.month != key → reset phase/message/options, keep past_ideas
 
-phase == ""       && pollDay <= today < summaryDay   → SEND POLL   (pollDay = Sat-11)
+phase == ""       && pollDay <= today < summaryDay   → SEND POLL   (pollDay = Sat-7)
 phase == "polled" && summaryDay <= today <= Sat      → SUMMARIZE   (summaryDay = Sat-3)
 otherwise                                            → NOOP
 ```
