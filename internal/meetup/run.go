@@ -124,8 +124,9 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st State) Result {
 	var idea Idea
 	if deps.Ideas != nil {
-		from, to := today, today.AddDate(0, 0, 21)
-		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: from, To: to, PastIdeas: st.PastIdeas, Events: upcomingEvents(deps, from, to)})
+		// From the 3rd day after the poll opens to 2 weeks after the weekend.
+		from, to := today.AddDate(0, 0, 3), w.Sun.AddDate(0, 0, 14)
+		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: from, To: to, PastIdeas: st.PastIdeas, Events: upcomingEvents(deps, today, from, to)})
 		if err != nil {
 			log.Printf("meetup: idea generation failed, sending poll without AI option: %v", err)
 		} else {
@@ -159,8 +160,9 @@ func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st Sta
 }
 
 // upcomingEvents scrapes local events and keeps those inside [from, to].
-// Any failure just means no list; the poll must still go out.
-func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
+// Any failure just means no list; the poll must still go out. Scrapers
+// measure the period from now, so the scrape horizon starts at today.
+func upcomingEvents(deps Deps, today, from, to time.Time) []models.Event {
 	if deps.Events == nil {
 		return nil
 	}
@@ -168,7 +170,7 @@ func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
 	if city == "" {
 		city = "Winnipeg"
 	}
-	all, err := deps.Events.ScrapeEvents(city, "tech", to.Sub(from)+24*time.Hour)
+	all, err := deps.Events.ScrapeEvents(city, "tech", to.Sub(today)+24*time.Hour)
 	if err != nil {
 		log.Printf("meetup: event scrape failed, AI pick gets no event list: %v", err)
 		return nil

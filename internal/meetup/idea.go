@@ -24,7 +24,8 @@ const ideaModelPrefix = "claude-haiku"
 type IdeaInput struct {
 	Weekend Weekend
 	// From/To bound the dates the idea may use: the AI pick is not tied to
-	// the weekend and may point at an event worth visiting within ~3 weeks.
+	// the weekend and may point at an event from 3 days after the poll opens
+	// until 2 weeks after the weekend.
 	From, To  time.Time
 	PastIdeas []string
 	// Events are real upcoming local events inside the window (from the

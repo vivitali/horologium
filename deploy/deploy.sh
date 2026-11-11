@@ -216,7 +216,7 @@ echo "Manual invoke:"
 echo "  aws lambda invoke --function-name ${FUNCTION_NAME} \\"
 echo "      --payload '{\"action\":\"events\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
 echo "  aws lambda invoke --function-name ${MEETUP_FUNCTION_NAME} \\"
-echo "      --payload '{\"date\":\"2026-10-20\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
+echo "      --payload '{\"date\":\"2026-10-24\"}' --cli-binary-format raw-in-base64-out out.json && cat out.json"
 echo
 echo "Logs:"
 echo "  aws logs tail /aws/lambda/${FUNCTION_NAME} --follow --region ${REGION}"

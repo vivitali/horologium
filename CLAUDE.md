@@ -8,7 +8,7 @@ Lambdas driven by EventBridge. No inbound HTTP anywhere.
 | Binary | Lambda | Bot | Does |
 |---|---|---|---|
 | `cmd/lambda` | `winnipeg-tech-events` | events bot | weekly digest (`events`), monthly annual-events scrape (`scrape_annual`) |
-| `cmd/meetup` | `winnipeg-meetup-bot` | meetup bot | daily tick: last-weekend poll (S-11), stopPoll + summary + pin (S-3) |
+| `cmd/meetup` | `winnipeg-meetup-bot` | meetup bot | daily tick: last-weekend poll (S-7), stopPoll + summary + pin (S-3) |
 
 `cmd/cli` runs any of them locally; `cmd/server` is the local web UI.
 
@@ -32,5 +32,5 @@ Lambdas driven by EventBridge. No inbound HTTP anywhere.
 ## Local smoke
 
 ```bash
-TEST_MODE=true go run ./cmd/cli -action=meetup -date=2026-10-20 -out=/tmp/meetup.json
+TEST_MODE=true go run ./cmd/cli -action=meetup -date=2026-10-24 -out=/tmp/meetup.json
 ```

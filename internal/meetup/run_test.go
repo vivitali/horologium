@@ -85,9 +85,11 @@ func (f *fakeIdeas) Generate(ctx context.Context, in IdeaInput) (Idea, error) {
 type fakeEvents struct {
 	events []models.Event
 	err    error
+	period time.Duration
 }
 
 func (f *fakeEvents) ScrapeEvents(city, category string, period time.Duration) ([]models.Event, error) {
+	f.period = period
 	return f.events, f.err
 }
 
@@ -110,7 +112,7 @@ func TestRun_Noop_BeforeWindow(t *testing.T) {
 
 func TestRun_SendsPollWithIdea(t *testing.T) {
 	b, s, i := &fakeBot{}, &memStore{st: State{Month: "2026-09", Phase: PhaseDone, PastIdeas: []string{"old"}}}, &fakeIdeas{idea: "Sat ~2pm — pool", details: "Pool hall on Osborne, $10/hour."}
-	res := Run(context.Background(), deps(b, s, i), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(b, s, i), tick(2026, 10, 24))
 	if !res.Success || res.Step != "send_poll" || res.PollMessageID != 111 {
 		t.Fatalf("res=%+v", res)
 	}
@@ -132,14 +134,14 @@ func TestRun_SendsPollWithIdea(t *testing.T) {
 	if len(i.in.PastIdeas) != 1 || i.in.PastIdeas[0] != "old" {
 		t.Errorf("generator should see previous ideas: %+v", i.in)
 	}
-	if !i.in.From.Equal(d(2026, 10, 20)) || !i.in.To.Equal(d(2026, 11, 10)) {
-		t.Errorf("idea window should be today..today+21d: %v..%v", i.in.From, i.in.To)
+	if !i.in.From.Equal(d(2026, 10, 27)) || !i.in.To.Equal(d(2026, 11, 15)) {
+		t.Errorf("idea window should be today+3d..Sun+14d: %v..%v", i.in.From, i.in.To)
 	}
 }
 
 func TestRun_SendsPollWithoutIdeaOnGeneratorError(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{err: errors.New("down")}), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{err: errors.New("down")}), tick(2026, 10, 24))
 	if !res.Success || len(b.pollOpts) != 6 || b.pollOpts[5] != OptionCannot {
 		t.Errorf("res=%+v opts=%q", res, b.pollOpts)
 	}
@@ -149,7 +151,7 @@ func TestRun_TestMode_SendsNothingWritesNothing(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{}
 	d := deps(b, s, &fakeIdeas{idea: "x"})
 	d.TestMode = true
-	res := Run(context.Background(), d, tick(2026, 10, 20))
+	res := Run(context.Background(), d, tick(2026, 10, 24))
 	if !res.Success || res.Step != "send_poll" || len(b.calls) != 0 || s.puts != 0 {
 		t.Errorf("res=%+v calls=%v puts=%d", res, b.calls, s.puts)
 	}
@@ -157,7 +159,7 @@ func TestRun_TestMode_SendsNothingWritesNothing(t *testing.T) {
 
 func TestRun_PollSendErrorLeavesStateUntouched(t *testing.T) {
 	b, s := &fakeBot{pollErr: errors.New("tg down")}, &memStore{}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 24))
 	if res.Success || s.puts != 0 {
 		t.Errorf("res=%+v puts=%d", res, s.puts)
 	}
@@ -216,7 +218,7 @@ func TestRun_StopPollErrorKeepsPolledPhase(t *testing.T) {
 }
 
 func TestRun_StoreErrorFails(t *testing.T) {
-	res := Run(context.Background(), deps(&fakeBot{}, &memStore{getErr: errors.New("ssm")}, &fakeIdeas{}), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(&fakeBot{}, &memStore{getErr: errors.New("ssm")}, &fakeIdeas{}), tick(2026, 10, 24))
 	if res.Success {
 		t.Errorf("res=%+v", res)
 	}
@@ -225,7 +227,7 @@ func TestRun_StoreErrorFails(t *testing.T) {
 func TestRun_MissingConfigFails(t *testing.T) {
 	d := deps(&fakeBot{}, &memStore{}, &fakeIdeas{})
 	d.ChatID = ""
-	if res := Run(context.Background(), d, tick(2026, 10, 20)); res.Success {
+	if res := Run(context.Background(), d, tick(2026, 10, 24)); res.Success {
 		t.Errorf("missing chat id: res=%+v", res)
 	}
 	d = deps(&fakeBot{}, &memStore{}, &fakeIdeas{})
@@ -237,7 +239,7 @@ func TestRun_MissingConfigFails(t *testing.T) {
 
 func TestRun_PollSent_StateWriteRetriesThenSucceeds(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{failPuts: 2}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 24))
 	if !res.Success || s.puts != 3 || s.st.Phase != PhasePolled {
 		t.Errorf("res=%+v puts=%d state=%+v", res, s.puts, s.st)
 	}
@@ -245,7 +247,7 @@ func TestRun_PollSent_StateWriteRetriesThenSucceeds(t *testing.T) {
 
 func TestRun_PollSent_StateWriteFailsAlertsGroup(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{putErr: errors.New("ssm down")}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 10, 24))
 	if res.Success || s.puts != putRetries {
 		t.Errorf("res=%+v puts=%d", res, s.puts)
 	}
@@ -285,9 +287,9 @@ func stoppedState() State {
 }
 
 func TestRun_StoppedMonthGivesUpAtNextPollDay(t *testing.T) {
-	// October is stuck in "stopped"; 20 Nov is past November's poll day (17 Nov).
+	// October is stuck in "stopped"; 22 Nov is past November's poll day (21 Nov).
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 22))
 	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" {
 		t.Fatalf("expected to move on and send November's poll: res=%+v", res)
 	}
@@ -323,7 +325,7 @@ func TestRun_TestMode_StoppedState(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
 	d := deps(b, s, &fakeIdeas{})
 	d.TestMode = true
-	res := Run(context.Background(), d, tick(2026, 11, 20))
+	res := Run(context.Background(), d, tick(2026, 11, 22))
 	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" || len(b.calls) != 0 || s.puts != 0 {
 		t.Errorf("past deadline: res=%+v calls=%v puts=%d", res, b.calls, s.puts)
 	}
@@ -339,17 +341,17 @@ func TestRun_TestMode_StoppedState(t *testing.T) {
 
 func TestRun_GiveUpWriteFailureSendsNothing(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{st: stoppedState(), putErr: errors.New("ssm down")}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 20))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 22))
 	if res.Success || len(b.calls) != 0 || s.st.Phase != PhaseStopped {
 		t.Errorf("res=%+v calls=%v state=%+v", res, b.calls, s.st)
 	}
 }
 
 func TestResumeDeadline(t *testing.T) {
-	if got := resumeDeadline("2026-12", wpg); !got.Equal(d(2027, 1, 19)) {
-		t.Errorf("Dec->Jan rollover: got %v", got) // last Sat Jan 2027 = 30th; -11 = 19th
+	if got := resumeDeadline("2026-12", wpg); !got.Equal(d(2027, 1, 23)) {
+		t.Errorf("Dec->Jan rollover: got %v", got) // last Sat Jan 2027 = 30th; -7 = 23rd
 	}
-	if got := resumeDeadline("2026-10", wpg); !got.Equal(d(2026, 11, 17)) {
+	if got := resumeDeadline("2026-10", wpg); !got.Equal(d(2026, 11, 21)) {
 		t.Errorf("Oct->Nov: got %v", got)
 	}
 	if got := resumeDeadline("garbage", wpg); !got.IsZero() {
@@ -403,25 +405,29 @@ func TestRun_SummaryShowsIdeaDetailsOnlyWhenIdeaWins(t *testing.T) {
 
 func TestRun_PassesWindowedEventsToIdeaGenerator(t *testing.T) {
 	ev := &fakeEvents{events: []models.Event{
-		{Name: "Too early", StartTime: d(2026, 10, 19)},
+		{Name: "Too early", StartTime: d(2026, 10, 26).Add(18 * time.Hour)},
 		{Name: "Tech Social", StartTime: d(2026, 10, 29).Add(18 * time.Hour), Venue: "Hub", URL: "https://x"},
-		{Name: "Too late", StartTime: d(2026, 11, 12)},
+		{Name: "Too late", StartTime: d(2026, 11, 16)},
 	}}
 	i := &fakeIdeas{idea: "x"}
 	dd := deps(&fakeBot{}, &memStore{}, i)
 	dd.Events = ev
-	if res := Run(context.Background(), dd, tick(2026, 10, 20)); !res.Success {
+	if res := Run(context.Background(), dd, tick(2026, 10, 24)); !res.Success {
 		t.Fatalf("res=%+v", res)
 	}
 	if len(i.in.Events) != 1 || i.in.Events[0].Name != "Tech Social" {
 		t.Errorf("events passed = %+v", i.in.Events)
+	}
+	// Scrapers count the period from now, so it must reach the window end from today.
+	if ev.period < d(2026, 11, 16).Sub(d(2026, 10, 24)) {
+		t.Errorf("scrape period %v stops short of the window end", ev.period)
 	}
 }
 
 func TestRun_EventScrapeFailureStillSendsPoll(t *testing.T) {
 	dd := deps(&fakeBot{}, &memStore{}, &fakeIdeas{idea: "x"})
 	dd.Events = &fakeEvents{err: errors.New("down")}
-	if res := Run(context.Background(), dd, tick(2026, 10, 20)); !res.Success || res.Step != "send_poll" {
+	if res := Run(context.Background(), dd, tick(2026, 10, 24)); !res.Success || res.Step != "send_poll" {
 		t.Errorf("res=%+v", res)
 	}
 }
@@ -443,7 +449,7 @@ func TestUpcomingEvents_SortedDedupedCapped(t *testing.T) {
 	evs = append(evs, models.Event{Name: "Dup", URL: "https://e/b", StartTime: d(2026, 10, 22)})
 	dd := deps(&fakeBot{}, &memStore{}, &fakeIdeas{})
 	dd.Events = &fakeEvents{events: evs}
-	got := upcomingEvents(dd, d(2026, 10, 20), d(2026, 11, 10))
+	got := upcomingEvents(dd, d(2026, 10, 20), d(2026, 10, 20), d(2026, 11, 10))
 	if len(got) != 15 {
 		t.Fatalf("len = %d", len(got))
 	}

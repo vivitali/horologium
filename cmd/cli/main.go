@@ -7,7 +7,7 @@
 //	go run ./cmd/cli -action=scrape_annual                    # writes to SSM via default AWS creds
 //	go run ./cmd/cli -action=scrape_annual -out=/tmp/x.json   # writes JSON to file, skips SSM
 //	go run ./cmd/cli -action=meetup                           # today's tick, SSM state
-//	go run ./cmd/cli -action=meetup -date=2026-10-20 -out=/tmp/meetup.json
+//	go run ./cmd/cli -action=meetup -date=2026-10-24 -out=/tmp/meetup.json
 package main
 
 import (
