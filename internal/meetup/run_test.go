@@ -287,9 +287,9 @@ func stoppedState() State {
 }
 
 func TestRun_StoppedMonthGivesUpAtNextPollDay(t *testing.T) {
-	// October is stuck in "stopped"; 22 Nov is past November's poll day (21 Nov).
+	// October is stuck in "stopped"; 21 Nov is November's poll day, the deadline.
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 22))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 21))
 	if !res.Success || res.Step != "send_poll" || res.Month != "2026-11" {
 		t.Fatalf("expected to move on and send November's poll: res=%+v", res)
 	}
@@ -311,7 +311,7 @@ func TestRun_StoppedMonthGivesUpAtNextPollDay(t *testing.T) {
 
 func TestRun_StoppedMonthResumesBeforeNextPollDay(t *testing.T) {
 	b, s := &fakeBot{}, &memStore{st: stoppedState()}
-	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 16))
+	res := Run(context.Background(), deps(b, s, &fakeIdeas{}), tick(2026, 11, 20)) // day before the deadline
 	if !res.Success || res.Step != "summarize" || res.Month != "2026-10" || res.Winner != "☕ sat" {
 		t.Fatalf("res=%+v", res)
 	}
