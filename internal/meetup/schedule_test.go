@@ -46,8 +46,8 @@ func TestWeekend_KeyAndDays(t *testing.T) {
 	if w.Key() != "2026-10" {
 		t.Errorf("Key = %q", w.Key())
 	}
-	// 31 Oct 2026 is a Saturday; Sat-11 = Tue 20 Oct.
-	if !w.PollDay().Equal(d(2026, 10, 20)) || w.PollDay().Weekday() != time.Tuesday {
+	// 31 Oct 2026 is a Saturday; Sat-7 = Sat 24 Oct.
+	if !w.PollDay().Equal(d(2026, 10, 24)) || w.PollDay().Weekday() != time.Saturday {
 		t.Errorf("PollDay = %v", w.PollDay())
 	}
 	if !w.SummaryDay().Equal(d(2026, 10, 28)) {
@@ -56,16 +56,16 @@ func TestWeekend_KeyAndDays(t *testing.T) {
 }
 
 func TestNextStep(t *testing.T) {
-	w := LastWeekend(2026, time.October, wpg) // poll 20th, summary 28th, Sat 31st
+	w := LastWeekend(2026, time.October, wpg) // poll 24th, summary 28th, Sat 31st
 	cases := []struct {
 		name  string
 		today time.Time
 		phase Phase
 		want  Step
 	}{
-		{"before window", d(2026, 10, 19), PhaseNew, StepNone},
-		{"poll day", d(2026, 10, 20), PhaseNew, StepSendPoll},
-		{"missed poll day, still before summary", d(2026, 10, 25), PhaseNew, StepSendPoll},
+		{"before window", d(2026, 10, 23), PhaseNew, StepNone},
+		{"poll day", d(2026, 10, 24), PhaseNew, StepSendPoll},
+		{"missed poll day, still before summary", d(2026, 10, 27), PhaseNew, StepSendPoll},
 		{"already polled mid-window", d(2026, 10, 25), PhasePolled, StepNone},
 		{"summary day", d(2026, 10, 28), PhasePolled, StepSummarize},
 		{"missed summary day", d(2026, 10, 30), PhasePolled, StepSummarize},

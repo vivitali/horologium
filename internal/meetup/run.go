@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"sort"
 	"time"
 
@@ -19,6 +20,13 @@ type EventSource interface {
 
 // maxIdeaEvents caps the list handed to the model.
 const maxIdeaEvents = 15
+
+// eventOdds: one month in eventOdds the AI pick is offered the real event
+// list; otherwise the model suggests an activity of its own. 4 puts events
+// on par with the kinds of ideas the group named (billiards, skiing, bar). The roll happens in
+// code because a model handed an event list picks from it almost always.
+// ponytail: fixed share; make it configurable if the group wants more or fewer events.
+const eventOdds = 4
 
 // Bot is the slice of the Telegram client the flow needs.
 // *telegram.Service satisfies it.
@@ -42,6 +50,9 @@ type Deps struct {
 	Loc      *time.Location
 	// Sleep is used between state-write retries; tests override it.
 	Sleep func(time.Duration)
+	// EventMonth decides whether this month's AI pick is a real event;
+	// nil means a 1-in-eventOdds roll. Tests override it.
+	EventMonth func() bool
 }
 
 // putRetries is how many times a state write is attempted before giving up.
@@ -124,8 +135,15 @@ func Run(ctx context.Context, deps Deps, now time.Time) Result {
 func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st State) Result {
 	var idea Idea
 	if deps.Ideas != nil {
-		from, to := today, today.AddDate(0, 0, 21)
-		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: from, To: to, PastIdeas: st.PastIdeas, Events: upcomingEvents(deps, from, to)})
+		// From the 3rd day after the poll opens to 2 weeks after the weekend.
+		from, to := today.AddDate(0, 0, 3), w.Sun.AddDate(0, 0, 14)
+		var events []models.Event
+		if eventMonth(deps) {
+			events = upcomingEvents(deps, today, from, to)
+		} else {
+			log.Printf("meetup: activity month, AI pick gets no event list")
+		}
+		got, err := deps.Ideas.Generate(ctx, IdeaInput{Weekend: w, From: from, To: to, PastIdeas: st.PastIdeas, Events: events})
 		if err != nil {
 			log.Printf("meetup: idea generation failed, sending poll without AI option: %v", err)
 		} else {
@@ -158,9 +176,17 @@ func sendPoll(ctx context.Context, deps Deps, today time.Time, w Weekend, st Sta
 	return Result{Success: true, Step: StepSendPoll.String(), Month: w.Key(), PollMessageID: id}
 }
 
+func eventMonth(deps Deps) bool {
+	if deps.EventMonth != nil {
+		return deps.EventMonth()
+	}
+	return rand.IntN(eventOdds) == 0
+}
+
 // upcomingEvents scrapes local events and keeps those inside [from, to].
-// Any failure just means no list; the poll must still go out.
-func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
+// Any failure just means no list; the poll must still go out. Scrapers
+// measure the period from now, so the scrape horizon starts at today.
+func upcomingEvents(deps Deps, today, from, to time.Time) []models.Event {
 	if deps.Events == nil {
 		return nil
 	}
@@ -168,7 +194,7 @@ func upcomingEvents(deps Deps, from, to time.Time) []models.Event {
 	if city == "" {
 		city = "Winnipeg"
 	}
-	all, err := deps.Events.ScrapeEvents(city, "tech", to.Sub(from)+24*time.Hour)
+	all, err := deps.Events.ScrapeEvents(city, "tech", to.Sub(today)+24*time.Hour)
 	if err != nil {
 		log.Printf("meetup: event scrape failed, AI pick gets no event list: %v", err)
 		return nil
